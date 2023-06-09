@@ -30,7 +30,7 @@ else:
     print('No such part exists! Choose among 1, 2, 3, and 4.')
 
 
-for sig in range(2049, len(part_1)):
+for sig in range(len(part_1)):
     ppg_sig = part_1[sig][0]
     abp_sig = part_1[sig][1]
     # Alignment
