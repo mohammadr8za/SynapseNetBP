@@ -50,17 +50,17 @@ NUM_LOSS_SAMPLE = 50
 def noise_factor_definer(noise_level, count, len):
 
     if noise_level == '1':
-        if count < int((1 / 2) * len(clean_ppg_list)):
+        if count < int((1 / 2) * len):
             noise_factor = 0.75
         else:
             noise_factor = 1.25
     elif noise_level == '2':
-        if count < int((1 / 2) * len(clean_ppg_list)):
+        if count < int((1 / 2) * len):
             noise_factor = 0.5
         else:
             noise_factor = 1.5
     elif noise_level == '3':
-        if count < int((1 / 2) * len(clean_ppg_list)):
+        if count < int((1 / 2) * len):
             noise_factor = 0.25
         else:
             noise_factor = 1.75
@@ -185,18 +185,17 @@ class make_noisy():
 
 if __name__ == '__main__':
     # Test The Program
-    clean_ppg_dir = r'C:\Users\ASUS\Desktop\PPG2ABP\DenoisingNetwork\DATA\clean_ppg'
+    clean_ppg_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\clean_ppg'
     clean_ppg_list = os.listdir(clean_ppg_dir)
 
     ppg_txt_dir = r'D:\data\PPGBP\mimic\ppg\txt'
-    noisy_ppg_save_dir = r'C:\Users\ASUS\Desktop\PPG2ABP\DenoisingNetwork\DATA\
-                            noisy_ppg_created_from_clean_ppg'
+    noisy_ppg_save_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\noisy_ppg_created_from_clean_ppg'
 
     distort = make_noisy(clean_ppg_directory=clean_ppg_dir,
                          clean_ppg_txt_directory=ppg_txt_dir,
                          noisy_ppg_save_directory=noisy_ppg_save_dir,
                          num_loss_sample=50)
-    distort.scale(level=1)
+    distort.scale(level=3)
 
 
 
