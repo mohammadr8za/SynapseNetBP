@@ -6,8 +6,8 @@ import matplotlib.pyplot as plt
 from scipy.signal import correlate
 
 #     G E N E R A  L     S E T U P
-ppg_save_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\ppg'
-abp_save_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\abp'
+ppg_save_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\ppg_p3'
+abp_save_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\abp_p3'
 fs = 125
 T = 1 / fs
 chunk_in_sec = 4.096
@@ -16,23 +16,23 @@ part_number = 3
 
 if part_number == 1:
     annots_1 = loadmat('D:\PythonProjects\PPGBP\Part_1.mat')
-    part_1 = annots_1['Part_1'].squeeze()
+    part = annots_1['Part_1'].squeeze()
 elif part_number == 2:
-    annots_3 = loadmat('D:\PythonProjects\PPGBP\Part_2.mat')
-    part_3 = annots_3['Part_2'].squeeze()
+    annots_2 = loadmat('D:\PythonProjects\PPGBP\Part_2.mat')
+    part = annots_2['Part_2'].squeeze()
 elif part_number == 3:
     annots_3 = loadmat('D:\PythonProjects\PPGBP\Part_3.mat')
-    part_3 = annots_3['Part_3'].squeeze()
+    part = annots_3['Part_3'].squeeze()
 elif part_number == 4:
     annots_4 = loadmat('D:\PythonProjects\PPGBP\Part_4.mat')
-    part_4 = annots_4['Part_4'].squeeze()
+    part = annots_4['Part_4'].squeeze()
 else:
-    print('No such part exists! Choose among 1, 2, 3, and 4.')
+    print('[INFO] No such part exists! Choose among 1, 2, 3, and 4.')
 
 
-for sig in range(len(part_1)):
-    ppg_sig = part_1[sig][0]
-    abp_sig = part_1[sig][1]
+for sig in range(len(part)):
+    ppg_sig = part[sig][0]
+    abp_sig = part[sig][1]
     # Alignment
     corr = correlate(ppg_sig, abp_sig)
     delay = corr.argmax() - ppg_sig.shape[0]
@@ -40,7 +40,7 @@ for sig in range(len(part_1)):
     # Segment into n seconds chunks
     num_chunk = int(ppg_sig.shape[0] / chunk_in_sample)
     for num in range(num_chunk):
-        chunk_name = str(3) + '-' + str(sig) + '-' + str(
+        chunk_name = str(part_number) + '-' + str(sig) + '-' + str(
             num)  # [Part-Sig-Chunk]  -> 1-200-18 means chunk 18 from 200-th signal in Part 1 <-
         ppg_chunk = ppg_sig[num * chunk_in_sample: (num + 1) * chunk_in_sample]
         plt.figure()
