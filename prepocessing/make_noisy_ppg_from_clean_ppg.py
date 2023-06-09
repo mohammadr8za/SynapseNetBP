@@ -64,7 +64,7 @@ class make_noisy():
             ppg_chunk = np.loadtxt(os.path.join(self.clean_ppg_txt_directory, clean_ppg_name.replace('png', 'txt')))
 
             # start_index: distortion_start_index_random
-            start_index = np.random.randint(low=0, high=ppg_chunk.shape[0] - NUM_LOSS_SAMPLE, size=1)
+            start_index = np.random.randint(low=0, high=ppg_chunk.shape[0] - self.NLS, size=1)
 
             ppg_chunk[start_index.item():int(start_index.item() + self.NLS)] *= noise_factor
 
@@ -98,8 +98,8 @@ class make_noisy():
             # start_index: distortion_start_index_random
             start_index = np.random.randint(low=0, high=ppg_chunk.shape[0] - self.NLS, size=1)
 
-            ppg_chunk[start_index.item():int((start_index.item() + NUM_LOSS_SAMPLE))] =\
-                (np.mean(ppg_chunk)) * 2 * np.random.rand(NUM_LOSS_SAMPLE)
+            ppg_chunk[start_index.item():int((start_index.item() + self.NLS))] =\
+                (np.mean(ppg_chunk)) * 2 * np.random.rand(self.NLS)
 
             if plot:
                 plt.figure()
