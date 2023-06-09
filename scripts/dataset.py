@@ -3,7 +3,7 @@ import torch
 from torch.utils.data import Dataset
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from Models import txt_load
+from scripts. import txt_load
 import numpy as np
 from tqdm import tqdm
 
