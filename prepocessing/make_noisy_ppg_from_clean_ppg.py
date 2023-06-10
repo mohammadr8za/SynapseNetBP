@@ -45,7 +45,7 @@ class make_noisy():
 
         noise_level = str(level)
 
-        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'scale',
+        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'scale', 'sample_loss_'+str(self.NLS),
                                            'noise_level_' + noise_level)
 
         path = Path(save_noisy_output_directory)
@@ -80,7 +80,7 @@ class make_noisy():
 
     def sectoral_loss(self, plot=True, txt=True):
 
-        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'sectoral')
+        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'sectoral', 'sample_loss_'+str(self.NLS))
 
         path = Path(save_noisy_output_directory)
         path.mkdir(parents=True, exist_ok=True)
@@ -114,7 +114,7 @@ class make_noisy():
 
     def sample_loss(self, plot=True, txt=True):
 
-        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'sample')
+        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'sample', 'sample_loss_'+str(self.NLS))
 
         path = Path(save_noisy_output_directory)
         path.mkdir(parents=True, exist_ok=True)
@@ -146,16 +146,16 @@ class make_noisy():
 
 if __name__ == '__main__':
     # Test The Program
-    clean_ppg_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\clean_ppg'
+    clean_ppg_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\cleaning_512samples\fig_8000'
     clean_ppg_list = os.listdir(clean_ppg_dir)
 
-    ppg_txt_dir = r'D:\data\PPGBP\mimic\ppg\txt'
+    ppg_txt_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\ppg_p1\txt'
     noisy_ppg_save_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\noisy_ppg_created_from_clean_ppg'
 
     distort = make_noisy(clean_ppg_directory=clean_ppg_dir,
                          clean_ppg_txt_directory=ppg_txt_dir,
                          noisy_ppg_save_directory=noisy_ppg_save_dir,
-                         num_loss_sample=50)
+                         num_loss_sample=100)
     distort.scale(level=3)
 
 
