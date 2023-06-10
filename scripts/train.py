@@ -5,7 +5,7 @@ import numpy as np
 from dataset import BPDataset
 from dataset import BPDatasetRam
 from torch.utils.data import DataLoader
-from models import BPNeuralNet
+from models import mlp
 import torch.nn as nn
 from sklearn.metrics import r2_score
 from transformernet import Transformer
@@ -21,9 +21,9 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 
 # Parameters
-train_data_annotation_path = r"D:\data\PPGBP\mimic\Data_Train_Annotation.csv"
-test_data_annotation_path = r"D:\data\PPGBP\mimic\Data_test_Annotation.csv"
-valid_data_annotation_path = r"D:\data\PPGBP\mimic\Data_valid_Annotation.csv"
+train_data_annotation_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic/Data_Train_Annotation.csv"
+test_data_annotation_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic/Data_test_Annotation.csv"
+valid_data_annotation_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic/Data_valid_Annotation.csv"
 Batch_size = 4
 fs = 125
 win_time = 5  # seconds
@@ -101,6 +101,7 @@ class AverageMeter(object):
 def train(eopch):
 
 
+
     print(f"*************training eopch:{epoch}***************")
     model.train()
     loss_total = AverageMeter()
@@ -145,7 +146,9 @@ def valid(epoch, checkpoint):
     r2 = r2_score(y_true, y_pred)
     print(f"VALID R2 : {r2} ")
     # Save checkpoint
-    checkpoint.save(r2, f"BPmodel", epoch=epoch)
+    checkpoint.save(model=model, acc=r2, filename=f"BPmodel",loss=loss_total.avg.item(),
+                    loss_type=loss_fn, batch_size=Batch_size,
+                    optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch)
     return loss_total.avg.item(), r2
 
 class Checkpoint(object):
@@ -156,7 +159,7 @@ class Checkpoint(object):
         os.makedirs(self.folder, exist_ok=True)
 
 
-    def save(self, acc, filename, epoch):
+    def save(self, model, acc, loss, lr_value, batch_size, loss_type, optimizer, filename, epoch):
         # if acc > self.best_acc:
             print('Saving checkpoint...')
 
@@ -165,6 +168,12 @@ class Checkpoint(object):
                 'net': model.state_dict(),
                 'acc': acc,
                 'epoch': epoch,
+                'loss' : loss,
+                'loss_type': loss_type,
+                'lr_value': lr_value,
+                'batch_size': batch_size,
+                'optimizer': optimizer,
+                'model_architecht': model
             }
             path = os.path.join(os.path.abspath(self.folder), filename + f'epoch{epoch}.pth')
             torch.save(state, path)
