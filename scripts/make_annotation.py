@@ -7,10 +7,12 @@ import numpy as np
 
 
 data_path = r"D:\data\PPGBP\mimic\pick_clean"
-
+#TODO: chnage this dir to the correct dir of test txt files
+inference_data_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic"
 def MakeMainAnnotation(path,mode):
-    main_path = listdir(path)
+
     if mode == "main":
+        main_path = listdir(path)
         abp_files = listdir(join(path, main_path[1]))
         ppg_files = listdir(join(path, main_path[3]))
 
@@ -26,7 +28,24 @@ def MakeMainAnnotation(path,mode):
 
         signals_info = pd.DataFrame(signals_info)
         pd.DataFrame.to_csv(signals_info, r"D:\data\PPGBP\mimic\Main_Data_Train_Annotation.csv")
-   #TODO: elif mode == 'inference':
+    elif mode == 'inference':
+        assert os.path.exists(join(inference_data_path, 'PPG')) and os.path.exists(join(inference_data_path, 'ABP')),\
+            "You must put ppg and abp files in two folder with name PPG and ABP and give main dir of two folders to " \
+            "Make annotation function"
+        ppg_files = listdir(join(path,"PPG"))
+        abp_files = listdir(join(path,"ABP"))
+
+
+        signals_info = {"dir": [], "signal_fold": [], "signal_name": [], "label_fold": [], "lalbel_name": []}
+        for i in range(min(len(ppg_files), len(abp_files))):
+
+                signals_info["dir"].append(path)
+                signals_info["signal_fold"].append('PPG')
+                signals_info["label_fold"].append("ABP")
+                signals_info["signal_name"].append(ppg_files[i])
+                signals_info["lalbel_name"].append(ppg_files[i])
+        signals_info = pd.DataFrame(signals_info)
+        pd.DataFrame.to_csv(signals_info, os.path.join(inference_data_path, "inference.csv"))
 
 def MakeSubAnnotation(mode):
 
@@ -120,6 +139,7 @@ def MakeMainAnnotationNoisy(path,mode):
    #TODO: elif mode == 'inference':
 
 if __name__ == "__main__":
+
     # MakeMainAnnotation(data_path,mode='main')
     MakeMainAnnotationNoisy(data_path, mode='main')
     MakeSubAnnotation(mode="main")
