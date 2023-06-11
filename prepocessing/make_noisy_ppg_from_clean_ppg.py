@@ -155,7 +155,7 @@ if __name__ == '__main__':
     distort = make_noisy(clean_ppg_directory=clean_ppg_dir,
                          clean_ppg_txt_directory=ppg_txt_dir,
                          noisy_ppg_save_directory=noisy_ppg_save_dir,
-                         num_loss_sample=100)
+                         num_loss_sample=50)
     distort.scale(level=3)
 
 
