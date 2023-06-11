@@ -138,11 +138,48 @@ def MakeMainAnnotationNoisy(path,mode):
         pd.DataFrame.to_csv(signals_info, r"D:\data\PPGBP\mimic\Main_Data_Train_Annotation.csv")
    #TODO: elif mode == 'inference':
 
-if __name__ == "__main__":
 
+def Make_Train_Valid_Annotation_directly_refinment(path):
+
+
+
+        train_ppg_noisy_files = listdir(join(path, "TRAIN", "PPG_NOISY"))
+        train_ppg_clean_files = listdir("/home/mohammad/Documents/Project/DATA_BP_MAIN/train_data_v1/target/txt")
+        valid_ppg_noisy_files = listdir(join(path, "VALID", "PPG_NOISY"))
+        valid_ppg_clean_files = listdir("/home/mohammad/Documents/Project/DATA_BP_MAIN/train_data_v1/target/txt")
+
+        train_signals_info = {"dir": [], "signal_fold": [], "signal_name": [], "label_fold":[],"lalbel_name":[]}
+        valid_signals_info = {"dir": [], "signal_fold": [], "signal_name": [], "label_fold":[],"lalbel_name":[]}
+
+        for i in range(len(train_ppg_noisy_files)):
+
+                train_signals_info["dir"].append(path)
+                train_signals_info["signal_fold"].append(join( "TRAIN", "PPG_NOISY"))
+                train_signals_info["label_fold"].append("/home/mohammad/Documents/Project/DATA_BP_MAIN/train_data_v1/target/txt")
+                train_signals_info["signal_name"].append(train_ppg_noisy_files[i])
+                train_signals_info["lalbel_name"].append(train_ppg_noisy_files[i])
+
+
+        train_signals_info = pd.DataFrame(train_signals_info)
+        pd.DataFrame.to_csv(train_signals_info, join(path, "TRAIN","Data_Train_Annotation.csv"))
+
+        for i in range(len(valid_ppg_noisy_files)):
+
+                valid_signals_info["dir"].append(path)
+                valid_signals_info["signal_fold"].append(join( "VALID", "PPG_NOISY"))
+                valid_signals_info["label_fold"].append("/home/mohammad/Documents/Project/DATA_BP_MAIN/train_data_v1/target/txt")
+                valid_signals_info["signal_name"].append(valid_ppg_noisy_files[i])
+                valid_signals_info["lalbel_name"].append(valid_ppg_noisy_files[i])
+        valid_signals_info = pd.DataFrame(valid_signals_info)
+        pd.DataFrame.to_csv(valid_signals_info, join(path, "VALID", "Data_valid_Annotation.csv"))
+
+
+train_path = r"/home/mohammad/Documents/Project/DATA_BP_MAIN/DATA_FOR_TRAIN"
+if __name__ == "__main__":
+    Make_Train_Valid_Annotation_directly_refinment(train_path)
     # MakeMainAnnotation(data_path,mode='main')
-    MakeMainAnnotationNoisy(data_path, mode='main')
-    MakeSubAnnotation(mode="main")
+    # MakeMainAnnotationNoisy(data_path, mode='main')
+    # MakeSubAnnotation(mode="main")
 
     # MakeMainAnnotationClean(data_path,mode='main')
     # MakeSubAnnotationClean(mode="main")
