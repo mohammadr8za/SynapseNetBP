@@ -21,9 +21,9 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 
 # Parameters
-train_data_annotation_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic/Data_Train_Annotation.csv"
-test_data_annotation_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic/Data_test_Annotation.csv"
-valid_data_annotation_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic/Data_valid_Annotation.csv"
+train_data_annotation_path = r"/home/mohammad/Documents/Project/DATA_BP_MAIN/DATA_FOR_TRAIN/TRAIN/Data_Train_Annotation.csv"
+# test_data_annotation_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic/Data_test_Annotation.csv"
+valid_data_annotation_path = r"/home/mohammad/Documents/Project/DATA_BP_MAIN/DATA_FOR_TRAIN/VALID/Data_valid_Annotation.csv"
 Batch_size = 4
 fs = 125
 win_time = 5  # seconds
@@ -45,8 +45,8 @@ else:
 bp_data_train = BPDatasetRam(train_data_annotation_path, device)
 bp_data_train._load_data_to_RAM()
 
-bp_data_test = BPDatasetRam(test_data_annotation_path, device)
-bp_data_test._load_data_to_RAM()
+# bp_data_test = BPDatasetRam(test_data_annotation_path, device)
+# bp_data_test._load_data_to_RAM()
 
 bp_data_valid = BPDatasetRam(valid_data_annotation_path, device)
 bp_data_valid._load_data_to_RAM()
@@ -57,7 +57,7 @@ bp_data_valid._load_data_to_RAM()
 # data_loader_valid = DataLoader(bp_data_valid, Batch_size, shuffle=True, num_workers=2, pin_memory=False)
 
 data_loader_train = DataLoader(bp_data_train, Batch_size, shuffle=True)
-data_loader_test = DataLoader(bp_data_test, Batch_size, shuffle=True)
+# data_loader_test = DataLoader(bp_data_test, Batch_size, shuffle=True)
 data_loader_valid = DataLoader(bp_data_valid, Batch_size, shuffle=True)
 
 
@@ -211,20 +211,20 @@ def result():
     loss_total = AverageMeter()
     y_true = []
     y_pred = []
-    for batch_idx, (inputs, targets) in enumerate(data_loader_test):
-        inputs, targets = inputs.to(device), targets.to(device)
-    with torch.no_grad():
-        for batch_idx, (inputs, targets) in enumerate(data_loader_test):
-            inputs, targets = inputs.to(device), targets.to(device)
-            outputs = model(inputs.unsqueeze(1))
-            loss = loss_fn(outputs, targets)
-            loss_total.update(loss)
-            y_true += targets.cpu().numpy().tolist()
-            y_pred += outputs.cpu().detach().numpy().tolist()
-            # if batch_idx==2:
-            #     break
-    r2 = r2_score(y_true, y_pred)
-    print(f"TEST R2 : {r2} ")
+    # for batch_idx, (inputs, targets) in enumerate(data_loader_test):
+    #     inputs, targets = inputs.to(device), targets.to(device)
+    # with torch.no_grad():
+    #     for batch_idx, (inputs, targets) in enumerate(data_loader_test):
+    #         inputs, targets = inputs.to(device), targets.to(device)
+    #         outputs = model(inputs.unsqueeze(1))
+    #         loss = loss_fn(outputs, targets)
+    #         loss_total.update(loss)
+    #         y_true += targets.cpu().numpy().tolist()
+    #         y_pred += outputs.cpu().detach().numpy().tolist()
+    #         # if batch_idx==2:
+    #         #     break
+    # r2 = r2_score(y_true, y_pred)
+    # print(f"TEST R2 : {r2} ")
 
 
 if __name__ == "__main__":
