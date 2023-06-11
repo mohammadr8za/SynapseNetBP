@@ -73,7 +73,8 @@ model = UNetPPGtoABP()
 model.to(device)
 
 # Define loss funtion + optimiser
-loss_fn = nn.L1Loss()  # Mean Absolute Error
+loss_fn = nn.MSELoss()  # Mean Absolute Error
+# loss_fn = nn.L1Loss()  # Mean Absolute Error
 optimiser = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 
