@@ -57,8 +57,8 @@ class BPDatasetRam(Dataset):
         self.data_annotations = pd.read_csv(data_annotations_file)
         self.data_dir = self.data_annotations["dir"]
         self.device = device
-        self.total_data = np.empty((625))
-        self.total_label = np.empty((625))
+        self.total_data = np.empty((512))
+        self.total_label = np.empty((512))
 
 
     def __len__(self):
@@ -75,14 +75,16 @@ class BPDatasetRam(Dataset):
 
     def _load_data_to_RAM(self):
         for index in tqdm(range(len(self.data_annotations)), desc= "Loading all data to RAM", ncols=80):
+
             abp_signal_path = self._get_signal_path(index)
             label_path = self._get_label_path(index)
             signal = torch.tensor(txt_load.TxtLoad(abp_signal_path))
             label = torch.tensor(txt_load.TxtLoad(label_path))
             # signal = signal.to(self.device)
             # label = label.to(self.device)
-            self.total_data = np.vstack((self.total_data, signal))
-            self.total_label = np.vstack((self.total_label, label))
+            if signal.shape[0] == 512 and label.shape[0]== 512:
+                self.total_data = np.vstack((self.total_data, signal))
+                self.total_label = np.vstack((self.total_label, label))
         print("All data succesfully loaded in RAM, let's TRAIN")
 
 
