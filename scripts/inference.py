@@ -67,6 +67,19 @@ def inference():
     y_true = []
     y_pred = []
     x = []
+
+    each_sample_separate_info = {"r2_each_sample_seperate": [],
+                                 "mse_loss_each_sample_saperate": [],
+                                 "mae_loss_each_sample_saperate": [],
+                                 "snr_before_each_sample_seperated": [],
+                                 "snr_after_each_sample_seperated": [],
+                                 "snr_improve_rate": []}
+
+    total_samples_info = {"r2_total_samples": [], "mse_total_sample": [],
+                          "mae_total_sample": [],
+                          "snr_total_sample_before": [],
+                          "snr_total_sample_after": []}
+
     # time.sleep(5)
     for batch_idx, (inputs, targets) in enumerate(data_loader_inference):
         inputs, targets = inputs.to(device), targets.to(device)
@@ -84,12 +97,13 @@ def inference():
         np.append(snr_after_each_sample_seperated , snr_after)
         np.append(snr_improve_rate, (snr_after - snr_before)/(snr_after))
 
-        each_sample_separate_info = {"r2_each_sample_seperate": r2_each_sample_seperate,
-                                     "mse_loss_each_sample_saperate": mse_loss_each_sample_saperate,
-                                     "mae_loss_each_sample_saperate": mae_loss_each_sample_saperate,
-                                     "snr_before_each_sample_seperated": snr_before_each_sample_seperated,
-                                     "snr_after_each_sample_seperated": snr_after_each_sample_seperated,
-                                     "snr_improve_rate": snr_improve_rate}
+
+        each_sample_separate_info["r2_each_sample_seperate"].append(r2_each_sample_seperate)
+        each_sample_separate_info["mse_loss_each_sample_saperate"].append(mse_loss_each_sample_saperate)
+        each_sample_separate_info["mae_loss_each_sample_saperate"].append(mae_loss_each_sample_saperate)
+        each_sample_separate_info["snr_before_each_sample_seperated"].append(snr_before_each_sample_seperated)
+        each_sample_separate_info["snr_after_each_sample_seperated"].append(snr_after_each_sample_seperated)
+        each_sample_separate_info["snr_improve_rate"].append(snr_improve_rate)
 
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
@@ -98,12 +112,12 @@ def inference():
     mae_total_sample = mean_absolute_error(y_true, y_pred)
     snr_total_sample_before = Snr(x, y_pred)
     snr_total_sample_after = Snr(y_true, y_pred)
+    total_samples_info["r2_total_samples"].append(r2_total_samples)
+    total_samples_info["mae_total_sample"].append(mae_total_sample)
+    total_samples_info["snr_total_sample_before"].append(snr_total_sample_before)
+    total_samples_info["snr_total_sample_after"].append(snr_total_sample_after)
 
 
-    total_samples_info = {"r2_total_samples": [r2_total_samples], "mse_total_sample": [mse_total_sample],
-                          "mae_total_sample": [mae_total_sample],
-                          "snr_total_sample_before": [snr_total_sample_before],
-                          "snr_total_sample_after": [snr_total_sample_after]}
 
 
     pd.DataFrame.to_csv(pd.DataFrame(each_sample_separate_info), "each_sample_separate_info.csv")
