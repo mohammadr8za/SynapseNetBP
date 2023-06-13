@@ -113,7 +113,11 @@ def inference():
     snr_total_sample_before = Snr(x, y_pred)
     snr_total_sample_after = Snr(y_true, y_pred)
     total_samples_info["r2_total_samples"].append(r2_total_samples)
+<<<<<<< HEAD
     total_samples_info["mse_total_sample"].append(mae_total_sample)
+=======
+    total_samples_info["mse_total_sample"].append(mse_total_sample)
+>>>>>>> 67182418688bb30a445660765a212f1b33d112f1
     total_samples_info["mae_total_sample"].append(mae_total_sample)
     total_samples_info["snr_total_sample_before"].append(snr_total_sample_before)
     total_samples_info["snr_total_sample_after"].append(snr_total_sample_after)
