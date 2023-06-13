@@ -48,7 +48,7 @@ MakeMainAnnotation(inference_data_path, mode="inference")
 bp_data_inference = BPDatasetRam(inference_data_annotation_path, device)
 bp_data_inference._load_data_to_RAM()
 data_loader_inference = DataLoader(bp_data_inference, Batch_size, shuffle=True)
-stat_dict = torch.load(r"D:\PythonProjects\Git\PPG2ABP\scripts\chekpoint\BPmodelepoch12.pth")
+stat_dict = torch.load(r"D:\PythonProjects\Git\PPG2ABP\scripts\chekpoint\200_sample_loss\BPmodelepoch15.pth")
 # model = Transformer(input_shape)
 model = UNetPPGtoABP()
 model.load_state_dict(stat_dict['net'])
@@ -113,7 +113,7 @@ def inference():
     snr_total_sample_before = Snr(x, y_pred)
     snr_total_sample_after = Snr(y_true, y_pred)
     total_samples_info["r2_total_samples"].append(r2_total_samples)
-
+    total_samples_info["mse_total_sample"].append(mae_total_sample)
     total_samples_info["mae_total_sample"].append(mae_total_sample)
     total_samples_info["snr_total_sample_before"].append(snr_total_sample_before)
     total_samples_info["snr_total_sample_after"].append(snr_total_sample_after)
@@ -121,8 +121,8 @@ def inference():
 
 
 
-    pd.DataFrame.to_csv(pd.DataFrame(each_sample_separate_info), "each_sample_separate_info.csv")
-    pd.DataFrame.to_csv(pd.DataFrame(total_samples_info), "total_samples_info.csv")
+    pd.DataFrame.to_csv(pd.DataFrame(each_sample_separate_info), "./chekpoint/ceach_sample_separate_info.csv")
+    pd.DataFrame.to_csv(pd.DataFrame(total_samples_info), "./chekpoint/total_samples_info.csv")
 
 
 if __name__ == "__main__":

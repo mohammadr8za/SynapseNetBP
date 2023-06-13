@@ -174,7 +174,7 @@ def Make_Train_Valid_Annotation_directly_refinment(path):
         pd.DataFrame.to_csv(valid_signals_info, join(path, "VALID", "Data_valid_Annotation.csv"))
 
 
-train_path = r"D:\PPG2ABP\data_for_train\train_data_200sample_loss"
+train_path = r"D:\PPG2ABP\data_for_train\train_data_100sample_loss"
 if __name__ == "__main__":
     Make_Train_Valid_Annotation_directly_refinment(train_path)
     # MakeMainAnnotation(data_path,mode='main')
