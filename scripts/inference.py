@@ -21,8 +21,8 @@ from sklearn.metrics import r2_score
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 #TODO: chnage this dir to the correct dir of test txt files
-inference_data_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic"
-inference_data_annotation_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic/inference.csv"
+inference_data_path = r"D:\PPG2ABP\data_for_test"
+inference_data_annotation_path = r"D:\PPG2ABP\data_for_test/inference.csv"
 
 Batch_size = 1
 fs = 125
@@ -48,7 +48,7 @@ MakeMainAnnotation(inference_data_path, mode="inference")
 bp_data_inference = BPDatasetRam(inference_data_annotation_path, device)
 bp_data_inference._load_data_to_RAM()
 data_loader_inference = DataLoader(bp_data_inference, Batch_size, shuffle=True)
-stat_dict = torch.load(r"/home/mohammad/Documents/Project/PPG2ABP/scripts/chekpoint/BPmodelepoch1.pth")
+stat_dict = torch.load(r"D:\PythonProjects\Git\PPG2ABP\scripts\chekpoint\BPmodelepoch12.pth")
 # model = Transformer(input_shape)
 model = UNetPPGtoABP()
 model.load_state_dict(stat_dict['net'])
