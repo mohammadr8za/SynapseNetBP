@@ -143,6 +143,38 @@ class make_noisy():
             if txt:
                 np.savetxt(join(txt_path, clean_ppg_name.replace('png', 'txt')), ppg_chunk)
 
+    def shift_distortion(self, plot=True, txt=True):
+
+        # Directory: noise folder - distortion type - num of sample loss
+        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'shift_distorted', 'sample_loss_' + str(self.NLS))
+
+        path = Path(save_noisy_output_directory)
+        path.mkdir(parents=True, exist_ok=True)
+        if txt:
+            txt_path = path / 'txt'
+            txt_path.mkdir(parents=True, exist_ok=True)
+        if plot:
+            plot_path = path / 'fig'
+            plot_path.mkdir(parents=True, exist_ok=True)
+
+        for count, clean_ppg_name in enumerate(self.clean_ppg_list):
+
+            ppg_chunk = np.loadtxt(os.path.join(self.clean_ppg_txt_directory, clean_ppg_name.replace('png', 'txt')))
+
+            start_index = np.random.randint(low=0, high=ppg_chunk.shape[0] - self.NLS, size=1)
+
+            ppg_chunk[start_index.item():int((start_index.item() + self.NLS))] += np.power(-1, count) * np.mean(ppg_chunk)
+
+            if plot:
+                plt.figure()
+                plt.plot(ppg_chunk)
+                plt.title(f'Noise Type: Shift Distortion')
+                plt.savefig(join(plot_path, clean_ppg_name))
+                # plt.show()
+                plt.close()
+            if txt:
+                np.savetxt(join(txt_path, clean_ppg_name.replace('png', 'txt')), ppg_chunk)
+
 
 if __name__ == '__main__':
     # Test The Program
