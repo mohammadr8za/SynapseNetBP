@@ -84,6 +84,13 @@ def inference():
         np.append(snr_after_each_sample_seperated , snr_after)
         np.append(snr_improve_rate, (snr_after - snr_before)/(snr_after))
 
+        each_sample_separate_info = {"r2_each_sample_seperate": r2_each_sample_seperate,
+                                     "mse_loss_each_sample_saperate": mse_loss_each_sample_saperate,
+                                     "mae_loss_each_sample_saperate": mae_loss_each_sample_saperate,
+                                     "snr_before_each_sample_seperated": snr_before_each_sample_seperated,
+                                     "snr_after_each_sample_seperated": snr_after_each_sample_seperated,
+                                     "snr_improve_rate": snr_improve_rate}
+
     y_true = np.array(y_true)
     y_pred = np.array(y_pred)
     r2_total_samples =  r2_score(y_true, y_pred)
@@ -92,12 +99,11 @@ def inference():
     snr_total_sample_before = Snr(x, y_pred)
     snr_total_sample_after = Snr(y_true, y_pred)
 
-    each_sample_separate_info = {"r2_each_sample_seperate":r2_each_sample_seperate,"mse_loss_each_sample_saperate":mse_loss_each_sample_saperate,
-                                 "mae_loss_each_sample_saperate":mae_loss_each_sample_saperate, "snr_before_each_sample_seperated": snr_before_each_sample_seperated,
-                                  "snr_after_each_sample_seperated": snr_after_each_sample_seperated, "snr_improve_rate": snr_improve_rate}
 
-    total_samples_info = {"r2_total_samples": r2_total_samples, "mse_total_sample": mse_total_sample, "mae_total_sample": mae_total_sample,
-                          "snr_total_sample_before": snr_total_sample_before, "snr_total_sample_after": snr_total_sample_after}
+    total_samples_info = {"r2_total_samples": [r2_total_samples], "mse_total_sample": [mse_total_sample],
+                          "mae_total_sample": [mae_total_sample],
+                          "snr_total_sample_before": [snr_total_sample_before],
+                          "snr_total_sample_after": [snr_total_sample_after]}
 
 
     pd.DataFrame.to_csv(pd.DataFrame(each_sample_separate_info), "each_sample_separate_info.csv")
