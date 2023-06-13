@@ -97,6 +97,7 @@ def inference():
         np.append(snr_after_each_sample_seperated , snr_after)
         np.append(snr_improve_rate, (snr_after - snr_before)/(snr_after))
 
+
         each_sample_separate_info["r2_each_sample_seperate"].append(r2_each_sample_seperate)
         each_sample_separate_info["mse_loss_each_sample_saperate"].append(mse_loss_each_sample_saperate)
         each_sample_separate_info["mae_loss_each_sample_saperate"].append(mae_loss_each_sample_saperate)
