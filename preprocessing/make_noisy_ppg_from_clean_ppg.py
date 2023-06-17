@@ -1,15 +1,17 @@
 import os
+import random
+
 from matplotlib import pyplot as plt
 import numpy as np
 from os.path import join
 from pathlib import Path
 from os import listdir
+from scipy.signal import find_peaks
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 def noise_factor_definer(noise_level, count, len):
-
     if noise_level == '1':
         if count < int((1 / 2) * len):
             noise_factor = 0.75
@@ -30,6 +32,36 @@ def noise_factor_definer(noise_level, count, len):
 
     return noise_factor
 
+
+def distortion(ppg_chunk, num_peaks, rnd_peaks, count, length):
+
+    divide = int((1 / 2) * length)
+
+    if num_peaks > 5:
+        if count <= divide:
+            for peak in rnd_peaks:
+                ppg_chunk[peak - 5: peak] = np.flip(ppg_chunk[peak - 10: peak - 5])
+                ppg_chunk[peak: peak + 7] = np.flip(ppg_chunk[peak + 7: peak + 14])
+        else:
+            for peak in rnd_peaks:
+                ppg_chunk[peak - 5: peak] += ppg_chunk[peak - 5: peak]
+                ppg_chunk[peak: peak + 5] += ppg_chunk[peak: peak + 5]
+
+    else:
+        if count <= divide:
+            for peak in rnd_peaks:
+                ppg_chunk[peak - 5: peak] = np.flip(ppg_chunk[peak - 10: peak - 5])
+                ppg_chunk[peak: peak + 10] = np.flip(ppg_chunk[peak + 10: peak + 20])
+        else:
+            for peak in rnd_peaks:
+                ppg_chunk[peak - 5: peak] += ppg_chunk[peak - 5: peak]
+                ppg_chunk[peak: peak + 10] += ppg_chunk[peak: peak + 10]
+
+
+
+
+
+
 class make_noisy():
 
     def __init__(self, clean_ppg_directory, clean_ppg_txt_directory, noisy_ppg_save_directory, num_loss_sample):
@@ -45,7 +77,7 @@ class make_noisy():
 
         noise_level = str(level)
 
-        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'scale', 'sample_loss_'+str(self.NLS),
+        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'scale', 'sample_loss_' + str(self.NLS),
                                            'noise_level_' + noise_level)
 
         path = Path(save_noisy_output_directory)
@@ -80,7 +112,7 @@ class make_noisy():
 
     def sectoral_loss(self, plot=True, txt=True):
 
-        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'sectoral', 'sample_loss_'+str(self.NLS))
+        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'sectoral', 'sample_loss_' + str(self.NLS))
 
         path = Path(save_noisy_output_directory)
         path.mkdir(parents=True, exist_ok=True)
@@ -98,7 +130,7 @@ class make_noisy():
             # start_index: distortion_start_index_random
             start_index = np.random.randint(low=0, high=ppg_chunk.shape[0] - self.NLS, size=1)
 
-            ppg_chunk[start_index.item():int((start_index.item() + self.NLS))] =\
+            ppg_chunk[start_index.item():int((start_index.item() + self.NLS))] = \
                 (np.mean(ppg_chunk)) * 2 * np.random.rand(self.NLS)
 
             if plot:
@@ -111,10 +143,9 @@ class make_noisy():
             if txt:
                 np.savetxt(join(txt_path, clean_ppg_name.replace('png', 'txt')), ppg_chunk)
 
-
     def sample_loss(self, plot=True, txt=True):
 
-        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'sample', 'sample_loss_'+str(self.NLS))
+        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'sample', 'sample_loss_' + str(self.NLS))
 
         path = Path(save_noisy_output_directory)
         path.mkdir(parents=True, exist_ok=True)
@@ -146,7 +177,8 @@ class make_noisy():
     def shift_distortion(self, plot=True, txt=True):
 
         # Directory: noise folder - distortion type - num of sample loss
-        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'shift_distorted', 'sample_loss_' + str(self.NLS))
+        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'shift_distorted',
+                                           'sample_loss_' + str(self.NLS))
 
         path = Path(save_noisy_output_directory)
         path.mkdir(parents=True, exist_ok=True)
@@ -163,12 +195,53 @@ class make_noisy():
 
             start_index = np.random.randint(low=0, high=ppg_chunk.shape[0] - self.NLS, size=1)
 
-            ppg_chunk[start_index.item():int((start_index.item() + self.NLS))] += np.power(-1, count) * np.mean(ppg_chunk)
+            ppg_chunk[start_index.item():int((start_index.item() + self.NLS))] += np.power(-1, count) * np.mean(
+                ppg_chunk)
 
             if plot:
                 plt.figure()
                 plt.plot(ppg_chunk)
                 plt.title(f'Noise Type: Shift Distortion')
+                plt.savefig(join(plot_path, clean_ppg_name))
+                # plt.show()
+                plt.close()
+            if txt:
+                np.savetxt(join(txt_path, clean_ppg_name.replace('png', 'txt')), ppg_chunk)
+
+    def peak_distorted(self, ndp: int, plot=True, txt=True):
+        # ndp: number of distorted peaks
+
+        # save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'peak_distorted',
+        #                                    'sample_loss_' + str(self.NLS))
+        save_noisy_output_directory = join(self.noisy_ppg_save_directory, 'peak_distorted')
+
+
+        path = Path(save_noisy_output_directory)
+        path.mkdir(parents=True, exist_ok=True)
+        if txt:
+            txt_path = path / 'txt'
+            txt_path.mkdir(parents=True, exist_ok=True)
+        if plot:
+            plot_path = path / 'fig'
+            plot_path.mkdir(parents=True, exist_ok=True)
+
+        for count, clean_ppg_name in enumerate(self.clean_ppg_list):
+
+            ppg_chunk = np.loadtxt(os.path.join(self.clean_ppg_txt_directory, clean_ppg_name.replace('png', 'txt')))
+
+            peaks, _ = find_peaks(ppg_chunk, width=20, distance=20)
+
+            if ndp <= peaks.shape[0] - 1:
+                rnd_peaks = np.random.choice(peaks, size=ndp, replace=False)
+            else:
+                rnd_peaks = np.random.choice(peaks, size=ppg_chunk.shape[0], replace=False)
+
+            distortion(ppg_chunk, peaks.shape[0], rnd_peaks, count, len(self.clean_ppg_list))
+
+            if plot:
+                plt.figure()
+                plt.plot(ppg_chunk)
+                plt.title(f'Noise Type: Peak Distortion')
                 plt.savefig(join(plot_path, clean_ppg_name))
                 # plt.show()
                 plt.close()
@@ -188,8 +261,4 @@ if __name__ == '__main__':
                          clean_ppg_txt_directory=ppg_txt_dir,
                          noisy_ppg_save_directory=noisy_ppg_save_dir,
                          num_loss_sample=50)
-    distort.scale(level=3)
-
-
-
-
+    distort.peak_distorted(ndp=3)
