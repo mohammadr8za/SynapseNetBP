@@ -21,9 +21,9 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 
 # Parameters
-train_data_annotation_path = r"D:\PPG2ABP\data_for_train\train_data_200sample_loss/TRAIN/Data_Train_Annotation.csv"
+train_data_annotation_path = r"D:\PPG2ABP\data_for_train\train_data_100sample_loss/TRAIN/Data_Train_Annotation.csv"
 # test_data_annotation_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic/Data_test_Annotation.csv"
-valid_data_annotation_path = r"D:\PPG2ABP\data_for_train\train_data_200sample_loss\VALID/Data_valid_Annotation.csv"
+valid_data_annotation_path = r"D:\PPG2ABP\data_for_train\train_data_100sample_loss\VALID/Data_valid_Annotation.csv"
 Batch_size = 4
 fs = 125
 win_time = 5  # seconds
@@ -68,9 +68,9 @@ data_loader_valid = DataLoader(bp_data_valid, Batch_size, shuffle=True)
 # model.to(device)
 
 # model = Transformer(input_shape)
-state_dict = torch.load(r"D:\PythonProjects\Git\PPG2ABP\scripts\chekpoint\BPmodelepoch12.pth")
+# state_dict = torch.load(r"D:\PythonProjects\Git\PPG2ABP\scripts\chekpoint\BPmodelepoch12.pth")
 model = UNetPPGtoABP()
-model.load_state_dict(state_dict["net"])
+# model.load_state_dict(state_dict["net"])
 # model = VNet1D()
 model.to(device)
 
@@ -231,7 +231,7 @@ def result():
 
 if __name__ == "__main__":
     checkpoint = Checkpoint()
-    start, end = 13, 50
+    start, end = 0, 20
     train_loss = []
     valid_loss = []
     train_accuracy = []
