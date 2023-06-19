@@ -251,7 +251,7 @@ class make_noisy():
 
 if __name__ == '__main__':
     # Test The Program
-    clean_ppg_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\cleaning_512samples\fig_8000'
+    clean_ppg_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\cleaning_512samples\fig_clean'
     clean_ppg_list = os.listdir(clean_ppg_dir)
 
     ppg_txt_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\ppg_p1\txt'
@@ -260,5 +260,5 @@ if __name__ == '__main__':
     distort = make_noisy(clean_ppg_directory=clean_ppg_dir,
                          clean_ppg_txt_directory=ppg_txt_dir,
                          noisy_ppg_save_directory=noisy_ppg_save_dir,
-                         num_loss_sample=50)
-    distort.peak_distorted(ndp=3)
+                         num_loss_sample=200)
+    distort.scale(level=3, plot=False)

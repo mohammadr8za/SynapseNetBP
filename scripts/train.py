@@ -12,7 +12,7 @@ from transformernet import Transformer
 from unet import UNetPPGtoABP
 # from vnet import VNet1D
 # import  dataset
-from  snrloss import Snr
+from snrloss import Snr
 import matplotlib.pyplot as plt
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
