@@ -8,13 +8,17 @@ from models.unet import UNetPPGtoABP
 # from vnet import VNet1D
 # import  dataset
 import matplotlib.pyplot as plt
+import argparse
+
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 
+
 # Parameters
-train_data_annotation_path = r"D:\PPG2ABP\data_for_train\train_data_100sample_loss/TRAIN/Data_Train_Annotation.csv"
-# test_data_annotation_path = r"/home/mohammad/Documents/Project/BP/data/PPGBP/mimic/Data_test_Annotation.csv"
-valid_data_annotation_path = r"D:\PPG2ABP\data_for_train\train_data_100sample_loss\VALID/Data_valid_Annotation.csv"
+main_data_path = r"D:\PPG2ABP\data_for_train"
+
+#TODO: get list of data sets for train, like noisy_scale_100 and etc.
+data_folder_list = []
 Batch_size = 4
 fs = 125
 win_time = 5  # seconds
@@ -32,26 +36,27 @@ else:
     device = "cpu"
     print(f"Using device {device}")
 
-# bp_data_train = BPDataset(train_data_annotation_path, device)
-bp_data_train = BPDatasetRam(train_data_annotation_path, device)
-bp_data_train._load_data_to_RAM()
+def load_data(train_data_annotation_path ,valid_data_annotation_path ):
+    # bp_data_train = BPDataset(train_data_annotation_path, device)
+    bp_data_train = BPDatasetRam(train_data_annotation_path, device)
+    bp_data_train._load_data_to_RAM()
 
-# bp_data_test = BPDatasetRam(test_data_annotation_path, device)
-# bp_data_test._load_data_to_RAM()
+    # bp_data_test = BPDatasetRam(test_data_annotation_path, device)
+    # bp_data_test._load_data_to_RAM()
 
-bp_data_valid = BPDatasetRam(valid_data_annotation_path, device)
-bp_data_valid._load_data_to_RAM()
+    bp_data_valid = BPDatasetRam(valid_data_annotation_path, device)
+    bp_data_valid._load_data_to_RAM()
 
-# data_loader_train = DataLoader(bp_data_train, Batch_size, shuffle=True)
-# data_loader_train = DataLoader(bp_data_train, Batch_size, shuffle=True, num_workers=2, pin_memory=False)
-# data_loader_test = DataLoader(bp_data_test, Batch_size, shuffle=True, num_workers=2, pin_memory=False)
-# data_loader_valid = DataLoader(bp_data_valid, Batch_size, shuffle=True, num_workers=2, pin_memory=False)
+    # data_loader_train = DataLoader(bp_data_train, Batch_size, shuffle=True)
+    # data_loader_train = DataLoader(bp_data_train, Batch_size, shuffle=True, num_workers=2, pin_memory=False)
+    # data_loader_test = DataLoader(bp_data_test, Batch_size, shuffle=True, num_workers=2, pin_memory=False)
+    # data_loader_valid = DataLoader(bp_data_valid, Batch_size, shuffle=True, num_workers=2, pin_memory=False)
 
-data_loader_train = DataLoader(bp_data_train, Batch_size, shuffle=True)
-# data_loader_test = DataLoader(bp_data_test, Batch_size, shuffle=True)
-data_loader_valid = DataLoader(bp_data_valid, Batch_size, shuffle=True)
+    data_loader_train = DataLoader(bp_data_train, Batch_size, shuffle=True)
+    # data_loader_test = DataLoader(bp_data_test, Batch_size, shuffle=True)
+    data_loader_valid = DataLoader(bp_data_valid, Batch_size, shuffle=True)
 
-
+    return data_loader_train, data_loader_valid
 
 # Define the model
 
@@ -92,7 +97,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-def train(eopch):
+def train(epoch, data_loader_train):
 
 
 
@@ -121,7 +126,7 @@ def train(eopch):
 
     return loss_total.avg.item(), r2
 
-def valid(epoch, checkpoint):
+def valid(epoch, checkpoint, data_loader_valid, data_name):
     print(f"************* validation eopch:{epoch}***************")
     model.eval()
     loss_total = AverageMeter()
@@ -143,7 +148,7 @@ def valid(epoch, checkpoint):
 
     checkpoint.save(model=model, acc=r2, filename=f"BPmodel",loss=loss_total.avg.item(),
                     loss_type=loss_fn, batch_size=Batch_size,
-                    optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch)
+                    optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch,data_name= data_name)
 
     return loss_total.avg.item(), r2
 
@@ -155,8 +160,9 @@ class Checkpoint(object):
         os.makedirs(self.folder, exist_ok=True)
 
 
-    def save(self, model, acc, loss, lr_value, batch_size, loss_type, optimizer, filename, epoch):
 
+    def save(self, model, acc, loss, lr_value, batch_size, loss_type, optimizer, filename, epoch, data_name):
+            os.makedirs(os.path.join(self.folder, data_name))
         # if acc > self.best_acc:
             print('Saving checkpoint...')
 
@@ -172,12 +178,12 @@ class Checkpoint(object):
                 'optimizer': optimizer,
                 'model_architecht': model
          }
-            path = os.path.join(os.path.abspath(self.folder), filename + f'epoch{epoch}.pth')
+            path = os.path.join(os.path.abspath(self.folder), filename + data_name+  f'epoch{epoch}.pth')
             torch.save(state, path)
             self.best_acc = acc
 
 
-def result():
+def result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, data_name):
     plt.figure(figsize=(15, 15))
     plt.plot(train_accuracy)
     plt.plot(valid_accuracy)
@@ -185,7 +191,8 @@ def result():
     plt.ylabel('Accuracy')
     plt.legend(['TRAINING', 'VALIDATION'], loc='upper right')
     # print()
-    plt.savefig(fr"./chekpoint/BPModel_R2.png")
+    # plt.savefig(fr"./chekpoint/BPModel_R2.png")
+    plt.savefig(os.path.join("./chekpoint"), data_name, "BPModel_R2.png")
     plt.close()
 
     plt.figure(figsize=(15, 15))
@@ -195,7 +202,8 @@ def result():
     plt.ylabel('Accuracy')
     plt.legend(['TRAINING', 'VALIDATION'], loc='upper right')
     # print()
-    plt.savefig(fr"./chekpoint/BPModel_Loss.png")
+    plt.savefig(os.path.join("./chekpoint"), data_name, "BPModel_Loss.png")
+    # plt.savefig(fr"./chekpoint/BPModel_Loss.png")
     plt.close()
 
     print(f"************* Test eopch:{epoch}***************")
@@ -218,20 +226,37 @@ def result():
     #         #     break
     # r2 = r2_score(y_true, y_pred)
     # print(f"TEST R2 : {r2} ")
+def parse_args():
+    parser = argparse.ArgumentParser(description='Train a deep model')
+    parser.add_argument('--data_dir', type=str, default='data', help='Path to training data directory')
+    parser.add_argument('--start_epoch', type=int, default=0, help='Start epoch number')
+    parser.add_argument('--end_epoch', type=int, default=20, help='End epoch number')
+    parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate for optimizer')
+    parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training')
+    return parser.parse_args()
+def main():
 
+    for i in data_folder_list:
+        data_train_path = os.path.join(main_data_path, i, "Data_Train_Annotation.csv")
+        data_valid_path = os.path.join(main_data_path, i, "Data_valid_Annotation.csv")
+
+
+        data_loader_train, data_loader_valid = load_data(data_train_path, data_valid_path)
+        args = parse_args()
+        checkpoint = Checkpoint()
+        start, end = 0, 20
+        train_loss = []
+        valid_loss = []
+        train_accuracy = []
+        valid_accuracy = []
+        for epoch in range(start, end):
+            TrainLoss, TrainAccuracy = train(epoch, data_loader_train)
+            ValidLoss, ValidAccuracy = valid(epoch, checkpoint, data_loader_valid, i )
+            train_loss.append(TrainLoss)
+            train_accuracy.append(TrainAccuracy)
+            valid_loss.append(ValidLoss)
+            valid_accuracy.append(ValidAccuracy)
+            result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, i)
 
 if __name__ == "__main__":
-    checkpoint = Checkpoint()
-    start, end = 0, 20
-    train_loss = []
-    valid_loss = []
-    train_accuracy = []
-    valid_accuracy = []
-    for epoch in range (start, end):
-        TrainLoss, TrainAccuracy = train(epoch)
-        ValidLoss, ValidAccuracy = valid(epoch, checkpoint)
-        train_loss.append(TrainLoss)
-        train_accuracy.append(TrainAccuracy)
-        valid_loss.append(ValidLoss)
-        valid_accuracy.append(ValidAccuracy)
-        result()
+    main()
