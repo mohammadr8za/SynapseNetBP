@@ -5,10 +5,14 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 from sklearn.metrics import r2_score
 from models.unet import UNetPPGtoABP
+from models.vnet import VNet
+from models.transformernet import Transformer
 # from vnet import VNet1D
 # import  dataset
 import matplotlib.pyplot as plt
 import argparse
+from torch.utils.tensorboard import SummaryWriter
+from torch.nn import MSELoss, L1Loss
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -26,7 +30,8 @@ LEARNING_RATE = .0001
 input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
-
+configs = {"models":[UNetPPGtoABP, VNet, Transformer], "loss_func":[MSELoss, L1Loss], "lr":[.0001, .001],
+           "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[], "lr_scheduler":[]}
 
 if torch.cuda.is_available():
 
@@ -58,8 +63,11 @@ def load_data(train_data_annotation_path ,valid_data_annotation_path ):
 
     return data_loader_train, data_loader_valid
 
-# Define the model
 
+
+
+    # if lr ==
+# Define the model
 # model = BPNeuralNet(win_time * fs, win_time * fs) #MLP
 # model.to(device)
 
@@ -97,7 +105,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-def train(epoch, data_loader_train):
+def train(epoch, data_loader_train, summery_writer):
 
 
 
@@ -106,7 +114,7 @@ def train(epoch, data_loader_train):
     loss_total = AverageMeter()
     y_true = []
     y_pred = []
-    # time.sleep(5)
+
     for batch_idx, (inputs, targets) in enumerate(data_loader_train):
         inputs, targets = inputs.to(device), targets.to(device)
         optimiser.zero_grad()
@@ -123,10 +131,12 @@ def train(epoch, data_loader_train):
         #     break
     r2 = r2_score(y_true, y_pred)
     print(f"TRAIN R2 : {r2} ")
+    summery_writer.add_scalar("train_loss", loss_total.avg, epoch)
+    summery_writer.add_scalar("train_r2", r2, epoch)
 
     return loss_total.avg.item(), r2
 
-def valid(epoch, checkpoint, data_loader_valid, data_name):
+def valid(epoch, checkpoint, data_loader_valid, data_name, summery_writer):
     print(f"************* validation eopch:{epoch}***************")
     model.eval()
     loss_total = AverageMeter()
@@ -145,6 +155,8 @@ def valid(epoch, checkpoint, data_loader_valid, data_name):
     r2 = r2_score(y_true, y_pred)
     print(f"VALID R2 : {r2} ")
     # Save checkpoint
+    summery_writer.add_scalar("train_loss", loss_total.avg, epoch)
+    summery_writer.add_scalar("train_r2", r2, epoch)
 
     checkpoint.save(model=model, acc=r2, filename=f"BPmodel",loss=loss_total.avg.item(),
                     loss_type=loss_fn, batch_size=Batch_size,
@@ -206,26 +218,8 @@ def result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, data_n
     # plt.savefig(fr"./chekpoint/BPModel_Loss.png")
     plt.close()
 
-    print(f"************* Test eopch:{epoch}***************")
-    print("Getting predictions from test set...")
-    model.eval()
-    loss_total = AverageMeter()
-    y_true = []
-    y_pred = []
-    # for batch_idx, (inputs, targets) in enumerate(data_loader_test):
-    #     inputs, targets = inputs.to(device), targets.to(device)
-    # with torch.no_grad():
-    #     for batch_idx, (inputs, targets) in enumerate(data_loader_test):
-    #         inputs, targets = inputs.to(device), targets.to(device)
-    #         outputs = model(inputs.unsqueeze(1))
-    #         loss = loss_fn(outputs, targets)
-    #         loss_total.update(loss)
-    #         y_true += targets.cpu().numpy().tolist()
-    #         y_pred += outputs.cpu().detach().numpy().tolist()
-    #         # if batch_idx==2:
-    #         #     break
-    # r2 = r2_score(y_true, y_pred)
-    # print(f"TEST R2 : {r2} ")
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a deep model')
     parser.add_argument('--data_dir', type=str, default='data', help='Path to training data directory')
@@ -244,14 +238,16 @@ def main():
         data_loader_train, data_loader_valid = load_data(data_train_path, data_valid_path)
         args = parse_args()
         checkpoint = Checkpoint()
+        log_dir = os.path.join("chekpoint", i, "run")
+        writer = SummaryWriter(log_dir)
         start, end = 0, 20
         train_loss = []
         valid_loss = []
         train_accuracy = []
         valid_accuracy = []
         for epoch in range(start, end):
-            TrainLoss, TrainAccuracy = train(epoch, data_loader_train)
-            ValidLoss, ValidAccuracy = valid(epoch, checkpoint, data_loader_valid, i )
+            TrainLoss, TrainAccuracy = train(epoch, data_loader_train, writer)
+            ValidLoss, ValidAccuracy = valid(epoch, checkpoint, data_loader_valid, i, writer )
             train_loss.append(TrainLoss)
             train_accuracy.append(TrainAccuracy)
             valid_loss.append(ValidLoss)
