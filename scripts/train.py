@@ -42,46 +42,17 @@ else:
     print(f"Using device {device}")
 
 def load_data(train_data_annotation_path ,valid_data_annotation_path ):
-    # bp_data_train = BPDataset(train_data_annotation_path, device)
+
     bp_data_train = BPDatasetRam(train_data_annotation_path, device)
     bp_data_train._load_data_to_RAM()
-
-    # bp_data_test = BPDatasetRam(test_data_annotation_path, device)
-    # bp_data_test._load_data_to_RAM()
 
     bp_data_valid = BPDatasetRam(valid_data_annotation_path, device)
     bp_data_valid._load_data_to_RAM()
 
-    # data_loader_train = DataLoader(bp_data_train, Batch_size, shuffle=True)
-    # data_loader_train = DataLoader(bp_data_train, Batch_size, shuffle=True, num_workers=2, pin_memory=False)
-    # data_loader_test = DataLoader(bp_data_test, Batch_size, shuffle=True, num_workers=2, pin_memory=False)
-    # data_loader_valid = DataLoader(bp_data_valid, Batch_size, shuffle=True, num_workers=2, pin_memory=False)
-
-    data_loader_train = DataLoader(bp_data_train, Batch_size, shuffle=True)
-    # data_loader_test = DataLoader(bp_data_test, Batch_size, shuffle=True)
-    data_loader_valid = DataLoader(bp_data_valid, Batch_size, shuffle=True)
-
-    return data_loader_train, data_loader_valid
+    return bp_data_train, bp_data_valid
 
 
 
-
-    # if lr ==
-# Define the model
-# model = BPNeuralNet(win_time * fs, win_time * fs) #MLP
-# model.to(device)
-
-# model = Transformer(input_shape)
-# state_dict = torch.load(r"D:\PythonProjects\Git\PPG2ABP\scripts\chekpoint\BPmodelepoch12.pth")
-model = UNetPPGtoABP()
-# model.load_state_dict(state_dict["net"])
-# model = VNet1D()
-model.to(device)
-
-# Define loss funtion + optimiser
-loss_fn = nn.MSELoss()  # Mean Absolute Error
-# loss_fn = nn.L1Loss()  # Mean Absolute Error
-optimiser = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
 
 class AverageMeter(object):
@@ -105,7 +76,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-def train(epoch, data_loader_train, summery_writer):
+def train(model, loss_fn, optimiser, data_loader_train,epoch, summery_writer):
 
 
 
@@ -136,7 +107,7 @@ def train(epoch, data_loader_train, summery_writer):
 
     return loss_total.avg.item(), r2
 
-def valid(epoch, checkpoint, data_loader_valid, data_name, summery_writer):
+def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_name, summery_writer, check_dir):
     print(f"************* validation eopch:{epoch}***************")
     model.eval()
     loss_total = AverageMeter()
@@ -160,7 +131,7 @@ def valid(epoch, checkpoint, data_loader_valid, data_name, summery_writer):
 
     checkpoint.save(model=model, acc=r2, filename=f"BPmodel",loss=loss_total.avg.item(),
                     loss_type=loss_fn, batch_size=Batch_size,
-                    optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch,data_name= data_name)
+                    optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch,data_name= data_name, check_dir=check_dir)
 
     return loss_total.avg.item(), r2
 
@@ -173,7 +144,7 @@ class Checkpoint(object):
 
 
 
-    def save(self, model, acc, loss, lr_value, batch_size, loss_type, optimizer, filename, epoch, data_name):
+    def save(self, model, acc, loss, lr_value, batch_size, loss_type, optimizer, filename, epoch, data_name, check_dir):
             os.makedirs(os.path.join(self.folder, data_name))
         # if acc > self.best_acc:
             print('Saving checkpoint...')
@@ -190,12 +161,12 @@ class Checkpoint(object):
                 'optimizer': optimizer,
                 'model_architecht': model
          }
-            path = os.path.join(os.path.abspath(self.folder), filename + data_name+  f'epoch{epoch}.pth')
+            path = os.path.join(check_dir + f'epoch{epoch}.pth')
             torch.save(state, path)
             self.best_acc = acc
 
 
-def result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, data_name):
+def result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, data_name, check_dir):
     plt.figure(figsize=(15, 15))
     plt.plot(train_accuracy)
     plt.plot(valid_accuracy)
@@ -204,7 +175,7 @@ def result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, data_n
     plt.legend(['TRAINING', 'VALIDATION'], loc='upper right')
     # print()
     # plt.savefig(fr"./chekpoint/BPModel_R2.png")
-    plt.savefig(os.path.join("./chekpoint"), data_name, "BPModel_R2.png")
+    plt.savefig(check_dir, "BPModel_R2.png")
     plt.close()
 
     plt.figure(figsize=(15, 15))
@@ -214,7 +185,7 @@ def result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, data_n
     plt.ylabel('Accuracy')
     plt.legend(['TRAINING', 'VALIDATION'], loc='upper right')
     # print()
-    plt.savefig(os.path.join("./chekpoint"), data_name, "BPModel_Loss.png")
+    plt.savefig(check_dir, "BPModel_Loss.png")
     # plt.savefig(fr"./chekpoint/BPModel_Loss.png")
     plt.close()
 
@@ -233,26 +204,45 @@ def main():
     for i in data_folder_list:
         data_train_path = os.path.join(main_data_path, i, "Data_Train_Annotation.csv")
         data_valid_path = os.path.join(main_data_path, i, "Data_valid_Annotation.csv")
+        bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
+        os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
 
+        for drop in configs["drop_out"]:
+            for model_type in configs["models"]:
+                model = model_type
+                model.to(device)
+                for loss_func in configs["loss_func"]:
+                    loss_fn = loss_func
+                    for lr_rate in configs["lr"]:
+                        optimiser = torch.optim.Adam(model.parameters(), lr=lr_rate)
+                        for batch_size in configs["batch_size"]:
 
-        data_loader_train, data_loader_valid = load_data(data_train_path, data_valid_path)
-        args = parse_args()
-        checkpoint = Checkpoint()
-        log_dir = os.path.join("chekpoint", i, "run")
-        writer = SummaryWriter(log_dir)
-        start, end = 0, 20
-        train_loss = []
-        valid_loss = []
-        train_accuracy = []
-        valid_accuracy = []
-        for epoch in range(start, end):
-            TrainLoss, TrainAccuracy = train(epoch, data_loader_train, writer)
-            ValidLoss, ValidAccuracy = valid(epoch, checkpoint, data_loader_valid, i, writer )
-            train_loss.append(TrainLoss)
-            train_accuracy.append(TrainAccuracy)
-            valid_loss.append(ValidLoss)
-            valid_accuracy.append(ValidAccuracy)
-            result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, i)
+                            data_loader_train = DataLoader(bp_data_train, batch_size, shuffle=True)
+                            data_loader_valid = DataLoader(bp_data_valid, batch_size, shuffle=True)
+                            args = parse_args()
+                            checkpoint = Checkpoint()
+                            checkpoint_path = os.path.join(f"drop_{str(model)}", f"loss_{loss_fn}",f"lr_{lr_rate}",f"batc_{batch_size}")
+                            os.makedirs(checkpoint_path, exist_ok=True)
+                            os.makedirs(os.path.join(checkpoint_path, "run"), exist_ok=True)
+
+                            log_dir = os.path.join("chekpoint",checkpoint_path, i, "run")
+
+                            writer = SummaryWriter(log_dir)
+                            start, end = 0, 20
+                            train_loss = []
+                            valid_loss = []
+                            train_accuracy = []
+                            valid_accuracy = []
+                            for epoch in range(start, end):
+                                TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
+                                                                 epoch, data_loader_train, writer)
+                                ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
+                                                                 epoch, checkpoint, data_loader_valid, i, writer, checkpoint_path)
+                                train_loss.append(TrainLoss)
+                                train_accuracy.append(TrainAccuracy)
+                                valid_loss.append(ValidLoss)
+                                valid_accuracy.append(ValidAccuracy)
+                                result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, i, checkpoint_path)
 
 if __name__ == "__main__":
     main()
