@@ -2,7 +2,7 @@ import os
 import shutil
 
 # set the paths to the two folders and the destination folder
-folder1_path = r"D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\cleaning_512samples\fig_8000_3"
+folder1_path = r"D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\cleaning_512samples\fig_clean"
 folder2_path = r"D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\ppg_p1\txt"
 dest_folder_path = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_clean"
 
