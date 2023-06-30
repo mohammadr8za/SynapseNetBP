@@ -51,10 +51,6 @@ def load_data(train_data_annotation_path ,valid_data_annotation_path ):
 
     return bp_data_train, bp_data_valid
 
-
-
-
-
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 
