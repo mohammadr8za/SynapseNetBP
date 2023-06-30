@@ -76,7 +76,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-def train(model, loss_fn, optimiser, data_loader_train,epoch, summery_writer):
+def train(model, loss_fn, optimiser, data_loader_train,epoch):
 
 
 
@@ -102,12 +102,11 @@ def train(model, loss_fn, optimiser, data_loader_train,epoch, summery_writer):
         #     break
     r2 = r2_score(y_true, y_pred)
     print(f"TRAIN R2 : {r2} ")
-    summery_writer.add_scalar("train_loss", loss_total.avg, epoch)
-    summery_writer.add_scalar("train_r2", r2, epoch)
+
 
     return loss_total.avg.item(), r2
 
-def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_name, summery_writer, check_dir):
+def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_name, check_dir):
     print(f"************* validation eopch:{epoch}***************")
     model.eval()
     loss_total = AverageMeter()
@@ -125,9 +124,6 @@ def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_n
             #     break
     r2 = r2_score(y_true, y_pred)
     print(f"VALID R2 : {r2} ")
-    # Save checkpoint
-    summery_writer.add_scalar("train_loss", loss_total.avg, epoch)
-    summery_writer.add_scalar("train_r2", r2, epoch)
 
     checkpoint.save(model=model, acc=r2, filename=f"BPmodel",loss=loss_total.avg.item(),
                     loss_type=loss_fn, batch_size=Batch_size,
@@ -235,14 +231,24 @@ def main():
                             valid_accuracy = []
                             for epoch in range(start, end):
                                 TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
-                                                                 epoch, data_loader_train, writer)
+                                                                 epoch)
                                 ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
-                                                                 epoch, checkpoint, data_loader_valid, i, writer, checkpoint_path)
+                                                                 epoch, checkpoint, i,
+                                                                 checkpoint_path)
                                 train_loss.append(TrainLoss)
                                 train_accuracy.append(TrainAccuracy)
                                 valid_loss.append(ValidLoss)
                                 valid_accuracy.append(ValidAccuracy)
                                 result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, i, checkpoint_path)
+                                writer.add_scalars(main_tag="accuracy",
+                                                   tag_scalar_dict={"train_accuracy": TrainAccuracy,
+                                                                    "valid_accuracy": valid_accuracy},
+                                                   global_step=epoch)
+                                writer.add_scalars(main_tag="loss",
+                                                   tag_scalar_dict={"train_loss": TrainLoss,
+                                                                    "valid_loss": valid_loss},
+                                                   global_step=epoch)
+
 
 if __name__ == "__main__":
     main()
