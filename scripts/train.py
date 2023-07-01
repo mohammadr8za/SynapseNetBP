@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import argparse
 from torch.utils.tensorboard import SummaryWriter
 from torch.nn import MSELoss, L1Loss
+from os import listdir
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -20,9 +21,9 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
 # Parameters
 main_data_path = r"D:\PPG2ABP\data_for_train"
-
+DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy"
 #TODO: get list of data sets for train, like noisy_scale_100 and etc.
-data_folder_list = []
+data_folder_list = listdir(DATASETS_PATH)
 Batch_size = 4
 fs = 125
 win_time = 5  # seconds
@@ -30,8 +31,8 @@ LEARNING_RATE = .0001
 input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
-configs = {"models":[UNetPPGtoABP, VNet, Transformer], "loss_func":[MSELoss, L1Loss], "lr":[.0001, .001],
-           "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[], "lr_scheduler":[]}
+configs = {"models":[  VNet()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
+           "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[.1], "lr_scheduler":[.1]}
 
 if torch.cuda.is_available():
 
@@ -50,6 +51,10 @@ def load_data(train_data_annotation_path ,valid_data_annotation_path ):
     bp_data_valid._load_data_to_RAM()
 
     return bp_data_train, bp_data_valid
+
+
+
+
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -137,23 +142,23 @@ class Checkpoint(object):
 
 
     def save(self, model, acc, loss, lr_value, batch_size, loss_type, optimizer, filename, epoch, data_name, check_dir):
-            os.makedirs(os.path.join(self.folder, data_name))
+            # os.makedirs(os.path.join(self.folder, data_name))
         # if acc > self.best_acc:
             print('Saving checkpoint...')
 
 
             state = {
                 'net': model.state_dict(),
-                'acc': acc,
-                'epoch': epoch,
-                'loss' : loss,
-                'loss_type': loss_type,
-                'lr_value': lr_value,
-                'batch_size': batch_size,
-                'optimizer': optimizer,
+                # 'acc': acc,
+                # 'epoch': epoch,
+                # 'loss' : loss,
+                # 'loss_type': loss_type,
+                # 'lr_value': lr_value,
+                # 'batch_size': batch_size,
+                # 'optimizer': optimizer,
                 'model_architecht': model
          }
-            path = os.path.join(check_dir + f'epoch{epoch}.pth')
+            path = os.path.join(check_dir , f'epoch{epoch}.pth')
             torch.save(state, path)
             self.best_acc = acc
 
@@ -167,7 +172,7 @@ def result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, data_n
     plt.legend(['TRAINING', 'VALIDATION'], loc='upper right')
     # print()
     # plt.savefig(fr"./chekpoint/BPModel_R2.png")
-    plt.savefig(check_dir, "BPModel_R2.png")
+    plt.savefig(os.path.join(check_dir, "BPModel_R2.png"))
     plt.close()
 
     plt.figure(figsize=(15, 15))
@@ -177,7 +182,7 @@ def result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, data_n
     plt.ylabel('Accuracy')
     plt.legend(['TRAINING', 'VALIDATION'], loc='upper right')
     # print()
-    plt.savefig(check_dir, "BPModel_Loss.png")
+    plt.savefig(os.path.join(check_dir, "BPModel_Loss.png"))
     # plt.savefig(fr"./chekpoint/BPModel_Loss.png")
     plt.close()
 
@@ -194,8 +199,8 @@ def parse_args():
 def main():
 
     for i in data_folder_list:
-        data_train_path = os.path.join(main_data_path, i, "Data_Train_Annotation.csv")
-        data_valid_path = os.path.join(main_data_path, i, "Data_valid_Annotation.csv")
+        data_train_path = os.path.join(DATASETS_PATH, i, "Data_Train_Annotation.csv")
+        data_valid_path = os.path.join(DATASETS_PATH, i, "Data_valid_Annotation.csv")
         bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
         os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
 
@@ -213,11 +218,11 @@ def main():
                             data_loader_valid = DataLoader(bp_data_valid, batch_size, shuffle=True)
                             args = parse_args()
                             checkpoint = Checkpoint()
-                            checkpoint_path = os.path.join(f"drop_{str(model)}", f"loss_{loss_fn}",f"lr_{lr_rate}",f"batc_{batch_size}")
+                            checkpoint_path = os.path.join("checkpoint", i, f"drop_{drop}", f"{str(model._get_name())}", f"loss_{loss_fn._get_name() }",f"lr_{lr_rate}",f"batch_{batch_size}")
                             os.makedirs(checkpoint_path, exist_ok=True)
                             os.makedirs(os.path.join(checkpoint_path, "run"), exist_ok=True)
 
-                            log_dir = os.path.join("chekpoint",checkpoint_path, i, "run")
+                            log_dir = os.path.join(checkpoint_path, "run")
 
                             writer = SummaryWriter(log_dir)
                             start, end = 0, 20
@@ -238,13 +243,13 @@ def main():
                                 result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, i, checkpoint_path)
                                 writer.add_scalars(main_tag="accuracy",
                                                    tag_scalar_dict={"train_accuracy": TrainAccuracy,
-                                                                    "valid_accuracy": valid_accuracy},
+                                                                    "valid_accuracy": ValidAccuracy},
                                                    global_step=epoch)
                                 writer.add_scalars(main_tag="loss",
                                                    tag_scalar_dict={"train_loss": TrainLoss,
-                                                                    "valid_loss": valid_loss},
+                                                                    "valid_loss": ValidLoss},
                                                    global_step=epoch)
-
+                            writer.close()
 
 if __name__ == "__main__":
     main()
