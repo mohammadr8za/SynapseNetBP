@@ -6,13 +6,13 @@ from dataset import train_test_valid
 import numpy as np
 
 
-DATA_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy\scale_200\noisy_data"
-LABEL_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_clean"
+ROOT_DATA_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle"
+
 #TODO: chnage this dir to the correct dir of test txt files
 inference_data_path = r"D:\PPG2ABP\data_for_test"
 
 
-def MakeMainAnnotation(data_path, label_path, mode):
+def MakeMainAnnotation(data_path, label_path, mode, noise_type):
 
     if mode == "main":
         path = r"D:\PPG2ABP\data_for_training_split_shuffle"
@@ -22,14 +22,14 @@ def MakeMainAnnotation(data_path, label_path, mode):
         for i in range(min(len(ppg_files), len(abp_files))):
             if os.path.exists(join(data_path, ppg_files[i])) and os.path.exists(join(label_path, abp_files[i])):
                 signals_info["dir"].append(path)
-                signals_info["signal_fold"].append("ppg_clean")
-                signals_info["label_fold"].append(r"ppg_noisy\scale_200\noisy_data")
+                signals_info["signal_fold"].append(join("ppg_noisy", noise_type, "noisy_data"))
+                signals_info["label_fold"].append("ppg_clean")
                 signals_info["signal_name"].append(ppg_files[i])
                 signals_info["lalbel_name"].append(ppg_files[i])
 
 
         signals_info = pd.DataFrame(signals_info)
-        pd.DataFrame.to_csv(signals_info, r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy\scale_200\Main_Data_Train_Annotation.csv")
+        pd.DataFrame.to_csv(signals_info,join(ROOT_DATA_PATH, "ppg_noisy", noise_type, "Main_Data_Train_Annotation.csv"))
     # elif mode == 'inference':
     #     assert os.path.exists(join(inference_data_path, 'PPG')) and os.path.exists(join(inference_data_path, 'ABP')),\
     #         "You must put ppg and abp files in two folder with name PPG and ABP and give main dir of two folders to " \
@@ -49,10 +49,10 @@ def MakeMainAnnotation(data_path, label_path, mode):
         signals_info = pd.DataFrame(signals_info)
         pd.DataFrame.to_csv(signals_info, os.path.join(inference_data_path, "inference.csv"))
 
-def MakeSubAnnotation(mode):
+def MakeSubAnnotation(mode, noise_type):
 
     if mode == 'main':
-        Data_Annotation = pd.read_csv(r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy\scale_200\Main_Data_Train_Annotation.csv")
+        Data_Annotation = pd.read_csv(join(ROOT_DATA_PATH, "ppg_noisy", noise_type, "Main_Data_Train_Annotation.csv"))
 
         Data_Annotation.drop('Unnamed: 0', axis=1, inplace= True)
         number_of_data =len(Data_Annotation)
@@ -67,11 +67,11 @@ def MakeSubAnnotation(mode):
 
     if mode == "main":
         pd.DataFrame.to_csv(train_annotation,
-                            r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy\scale_200\Data_Train_Annotation.csv")
+                            join(ROOT_DATA_PATH, "ppg_noisy", noise_type, "Data_Train_Annotation.csv"))
         pd.DataFrame.to_csv(test_annotation,
-                            r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy\scale_200\Data_test_Annotation.csv")
+                           join(ROOT_DATA_PATH, "ppg_noisy", noise_type,"Data_test_Annotation.csv"))
         pd.DataFrame.to_csv(valid_annotation,
-                            r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy\scale_200\Data_valid_Annotation.csv")
+                           join(ROOT_DATA_PATH, "ppg_noisy", noise_type,"Data_valid_Annotation.csv"))
     #TODO: elif mode == "inference":
 
 def MakeMainAnnotationClean(path,mode):
@@ -175,13 +175,15 @@ def Make_Train_Valid_Annotation_directly_refinment(path):
         valid_signals_info = pd.DataFrame(valid_signals_info)
         pd.DataFrame.to_csv(valid_signals_info, join(path, "VALID", "Data_valid_Annotation.csv"))
 
-
+DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy"
 train_path = r"D:\PPG2ABP\data_for_train\train_data_100sample_loss"
-if __name__ == "__main__":
-    # Make_Train_Valid_Annotation_directly_refinment(train_path)
-    MakeMainAnnotation(DATA_PATH, LABEL_PATH,mode='main')
-    # MakeMainAnnotationNoisy(data_path, mode='main')
-    MakeSubAnnotation(mode="main")
+LABEL_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_clean"
 
-    # MakeMainAnnotationClean(data_path,mode='main')
-    # MakeSubAnnotationClean(mode="main")
+if __name__ == "__main__":
+
+    for dataset in listdir(DATASETS_PATH):
+        NOISE_TYPE = dataset
+        DATA_PATH = os.path.join(ROOT_DATA_PATH, "ppg_noisy", NOISE_TYPE, "noisy_data")
+        # MakeMainAnnotation(DATA_PATH, LABEL_PATH,'main', NOISE_TYPE)
+        MakeSubAnnotation("main", NOISE_TYPE)
+

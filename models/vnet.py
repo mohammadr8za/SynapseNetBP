@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class VNet(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels= 1, out_channels=1):
         super(VNet, self).__init__()
 
         # Downsample layers
@@ -53,7 +53,7 @@ class VNet(nn.Module):
         # Output
         out = self.out(upconv1)
 
-        return out
+        return out.squeeze()
 
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
