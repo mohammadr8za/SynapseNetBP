@@ -6,7 +6,7 @@ import torch.nn as nn
 from sklearn.metrics import r2_score
 from models.unet import UNetPPGtoABP
 from models.vnet import VNet
-from models.transformernet import Transformer
+from models.transformernet import TransformerBlock
 # from vnet import VNet1D
 # import  dataset
 import matplotlib.pyplot as plt
@@ -31,7 +31,7 @@ LEARNING_RATE = .0001
 input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
-configs = {"models":[  VNet()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
+configs = {"models":[  UNetPPGtoABP()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
            "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[.1], "lr_scheduler":[.1]}
 
 if torch.cuda.is_available():
