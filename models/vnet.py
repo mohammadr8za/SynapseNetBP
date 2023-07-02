@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 
+
 class VNet(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, in_channels, out_channels, dropout=0.1):
         super(VNet, self).__init__()
 
         # Downsample layers
@@ -15,6 +16,7 @@ class VNet(nn.Module):
 
         # Bottleneck layer
         self.bottleneck = DoubleConv(64, 128)
+        self.dropout = nn.Dropout(p=dropout)
 
         # Upsample layers
         self.up3 = nn.ConvTranspose1d(128, 64, kernel_size=2, stride=2)
@@ -36,8 +38,9 @@ class VNet(nn.Module):
         down3 = self.down3(pool2)
         pool3 = self.pool3(down3)
 
-        # Bottleneck
+        # Bottleneck with dropout
         bottleneck = self.bottleneck(pool3)
+        bottleneck = self.dropout(bottleneck)
 
         # Upsample
         up3 = self.up3(bottleneck)
@@ -54,6 +57,7 @@ class VNet(nn.Module):
         out = self.out(upconv1)
 
         return out
+
 
 class DoubleConv(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -73,17 +77,3 @@ class DoubleConv(nn.Module):
         x = self.bn2(x)
         x = self.relu2(x)
         return x
-
-
-
-
-if __name__ == "__main__":
-    import torch
-
-    ppg_signal_tensor = torch.randn(1, 1, 624)
-    model = VNet(in_channels=1, out_channels=1)
-    abp_signal_tensor = model(ppg_signal_tensor)
-    abp_signal = abp_signal_tensor.squeeze(0).detach().numpy()
-
-
-    a = 5
