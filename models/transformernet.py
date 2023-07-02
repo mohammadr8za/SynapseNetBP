@@ -35,7 +35,7 @@ class TransformerBlock(nn.Module):
         x = self.dropout2(x)
         x = self.norm2(x + fc_input)
 
-        return x
+        return x.squeeze(1)
 
 input_shape = 512
 net = TransformerBlock()
