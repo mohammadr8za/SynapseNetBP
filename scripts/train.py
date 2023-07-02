@@ -14,6 +14,8 @@ import argparse
 from torch.utils.tensorboard import SummaryWriter
 from torch.nn import MSELoss, L1Loss
 from os import listdir
+from torch.optim.lr_scheduler import  StepLR, CosineAnnealingLR, OneCycleLR, ReduceLROnPlateau
+
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 
@@ -32,7 +34,8 @@ input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
 configs = {"models":[  UNetPPGtoABP()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
-           "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[.1], "lr_scheduler":[.1]}
+           "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[.1],
+           "lr_scheduler":["Cosinanlealing", "ReduceLR", "StepR"]}
 
 if torch.cuda.is_available():
 
@@ -77,7 +80,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-def train(model, loss_fn, optimiser, data_loader_train,epoch):
+def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler):
 
 
 
@@ -97,6 +100,7 @@ def train(model, loss_fn, optimiser, data_loader_train,epoch):
         loss_total.update(loss)
         y_true += targets.cpu().numpy().tolist()
         y_pred += outputs.cpu().detach().numpy().tolist()
+        scheduler.step()
         # print('batch \ totoal_data:',f'{(batch_idx/(len(data_loader_train))):.2}', f'loss: {loss_total.avg.item()}')
         # print(f"R2 : {r2_score(y_true, y_pred)} ")
         # if batch_idx == 100:
@@ -203,7 +207,7 @@ def main():
         data_valid_path = os.path.join(DATASETS_PATH, i, "Data_valid_Annotation.csv")
         bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
         os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
-
+        start, end = 0, 20
         for drop in configs["drop_out"]:
             for model_type in configs["models"]:
                 model = model_type
@@ -212,44 +216,53 @@ def main():
                     loss_fn = loss_func
                     for lr_rate in configs["lr"]:
                         optimiser = torch.optim.Adam(model.parameters(), lr=lr_rate)
-                        for batch_size in configs["batch_size"]:
+                        for scheduler_type in configs["lr_scheduler"]:
+                            if scheduler_type == "StepR":
+                                scheduler = StepLR(optimiser, step_size=10, gamma=0.1)
+                            elif scheduler_type == "Cosinanlealing":
+                                scheduler = CosineAnnealingLR(optimiser, T_max=end, eta_min=0)
+                            elif scheduler_type == "ReduceLR":
+                                scheduler = ReduceLROnPlateau(optimiser, mode='min', factor=0.1, patience=5, verbose=True)
+                            for batch_size in configs["batch_size"]:
 
-                            data_loader_train = DataLoader(bp_data_train, batch_size, shuffle=True)
-                            data_loader_valid = DataLoader(bp_data_valid, batch_size, shuffle=True)
-                            args = parse_args()
-                            checkpoint = Checkpoint()
-                            checkpoint_path = os.path.join("checkpoint", i, f"drop_{drop}", f"{str(model._get_name())}", f"loss_{loss_fn._get_name() }",f"lr_{lr_rate}",f"batch_{batch_size}")
-                            os.makedirs(checkpoint_path, exist_ok=True)
-                            os.makedirs(os.path.join(checkpoint_path, "run"), exist_ok=True)
+                                data_loader_train = DataLoader(bp_data_train, batch_size, shuffle=True)
+                                data_loader_valid = DataLoader(bp_data_valid, batch_size, shuffle=True)
+                                args = parse_args()
+                                checkpoint = Checkpoint()
+                                checkpoint_path = os.path.join("checkpoint", i, f"drop_{drop}", f"{str(model._get_name())}",
+                                                               f"loss_{loss_fn._get_name() }",f"lr_{lr_rate}",f"batch_{batch_size}",
+                                                               scheduler_type)
+                                os.makedirs(checkpoint_path, exist_ok=True)
+                                os.makedirs(os.path.join(checkpoint_path, "run"), exist_ok=True)
 
-                            log_dir = os.path.join(checkpoint_path, "run")
+                                log_dir = os.path.join(checkpoint_path, "run")
 
-                            writer = SummaryWriter(log_dir)
-                            start, end = 0, 20
-                            train_loss = []
-                            valid_loss = []
-                            train_accuracy = []
-                            valid_accuracy = []
-                            for epoch in range(start, end):
-                                TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
-                                                                 epoch)
-                                ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
-                                                                 epoch, checkpoint, i,
-                                                                 checkpoint_path)
-                                train_loss.append(TrainLoss)
-                                train_accuracy.append(TrainAccuracy)
-                                valid_loss.append(ValidLoss)
-                                valid_accuracy.append(ValidAccuracy)
-                                result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, i, checkpoint_path)
-                                writer.add_scalars(main_tag="accuracy",
-                                                   tag_scalar_dict={"train_accuracy": TrainAccuracy,
-                                                                    "valid_accuracy": ValidAccuracy},
-                                                   global_step=epoch)
-                                writer.add_scalars(main_tag="loss",
-                                                   tag_scalar_dict={"train_loss": TrainLoss,
-                                                                    "valid_loss": ValidLoss},
-                                                   global_step=epoch)
-                            writer.close()
+                                writer = SummaryWriter(log_dir)
+
+                                train_loss = []
+                                valid_loss = []
+                                train_accuracy = []
+                                valid_accuracy = []
+                                for epoch in range(start, end):
+                                    TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
+                                                                     epoch,scheduler_type= scheduler)
+                                    ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
+                                                                     epoch, checkpoint, i,
+                                                                     checkpoint_path)
+                                    train_loss.append(TrainLoss)
+                                    train_accuracy.append(TrainAccuracy)
+                                    valid_loss.append(ValidLoss)
+                                    valid_accuracy.append(ValidAccuracy)
+                                    result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, i, checkpoint_path)
+                                    writer.add_scalars(main_tag="accuracy",
+                                                       tag_scalar_dict={"train_accuracy": TrainAccuracy,
+                                                                        "valid_accuracy": ValidAccuracy},
+                                                       global_step=epoch)
+                                    writer.add_scalars(main_tag="loss",
+                                                       tag_scalar_dict={"train_loss": TrainLoss,
+                                                                        "valid_loss": ValidLoss},
+                                                       global_step=epoch)
+                                writer.close()
 
 if __name__ == "__main__":
     main()
