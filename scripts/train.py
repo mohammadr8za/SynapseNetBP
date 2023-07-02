@@ -31,8 +31,8 @@ LEARNING_RATE = .0001
 input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
-configs = {"models":[  VNet()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
-           "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[.1], "lr_scheduler":[.1]}
+configs = {"models":[  VNet(), UNetPPGtoABP(), Transformer()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
+           "optimizer":["adam", "adagrad"],"batch_size":[ 64, 128], "drop_out":[.1, .05], "lr_scheduler":[.1]}
 
 if torch.cuda.is_available():
 
@@ -225,7 +225,7 @@ def main():
                             log_dir = os.path.join(checkpoint_path, "run")
 
                             writer = SummaryWriter(log_dir)
-                            start, end = 0, 20
+                            start, end = 0, 3
                             train_loss = []
                             valid_loss = []
                             train_accuracy = []
