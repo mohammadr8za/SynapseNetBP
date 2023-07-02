@@ -80,7 +80,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler):
+def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler_fn):
 
 
 
@@ -100,7 +100,7 @@ def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler):
         loss_total.update(loss)
         y_true += targets.cpu().numpy().tolist()
         y_pred += outputs.cpu().detach().numpy().tolist()
-        scheduler.step()
+        scheduler_fn.step()
         # print('batch \ totoal_data:',f'{(batch_idx/(len(data_loader_train))):.2}', f'loss: {loss_total.avg.item()}')
         # print(f"R2 : {r2_score(y_true, y_pred)} ")
         # if batch_idx == 100:
@@ -218,11 +218,11 @@ def main():
                         optimiser = torch.optim.Adam(model.parameters(), lr=lr_rate)
                         for scheduler_type in configs["lr_scheduler"]:
                             if scheduler_type == "StepR":
-                                scheduler = StepLR(optimiser, step_size=10, gamma=0.1)
+                                scheduler_lr = StepLR(optimiser, step_size=10, gamma=0.1)
                             elif scheduler_type == "Cosinanlealing":
-                                scheduler = CosineAnnealingLR(optimiser, T_max=end, eta_min=0)
+                                scheduler_lr = CosineAnnealingLR(optimiser, T_max=end, eta_min=0)
                             elif scheduler_type == "ReduceLR":
-                                scheduler = ReduceLROnPlateau(optimiser, mode='min', factor=0.1, patience=5, verbose=True)
+                                scheduler_lr = ReduceLROnPlateau(optimiser, mode='min', factor=0.1, patience=5, verbose=True)
                             for batch_size in configs["batch_size"]:
 
                                 data_loader_train = DataLoader(bp_data_train, batch_size, shuffle=True)
@@ -245,7 +245,7 @@ def main():
                                 valid_accuracy = []
                                 for epoch in range(start, end):
                                     TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
-                                                                     epoch,scheduler_type= scheduler)
+                                                                     epoch,scheduler_fn= scheduler_lr)
                                     ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
                                                                      epoch, checkpoint, i,
                                                                      checkpoint_path)
@@ -265,5 +265,4 @@ def main():
                                 writer.close()
 
 if __name__ == "__main__":
-
     main()
