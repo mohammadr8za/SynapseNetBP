@@ -15,6 +15,7 @@ class TransformerBlock(nn.Module):
         self.dropout1 = nn.Dropout(dropout)
         self.norm1 = nn.LayerNorm(embed_dim)
 
+
         self.fc1 = nn.Linear(embed_dim, 4 * embed_dim)
         self.activation = nn.ReLU()
         self.fc2 = nn.Linear(4 * embed_dim, embed_dim)
@@ -33,7 +34,8 @@ class TransformerBlock(nn.Module):
         x = self.fc2(x)
         x = self.dropout2(x)
         x = self.norm2(x + fc_input)
-        return x
+
+        return x.squeeze(1)
 
 input_shape = 512
 net = TransformerBlock()

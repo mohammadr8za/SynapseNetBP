@@ -260,7 +260,7 @@ if __name__ == '__main__':
     distort = make_noisy(clean_ppg_directory=clean_ppg_dir,
                          clean_ppg_txt_directory=ppg_txt_dir,
                          noisy_ppg_save_directory=noisy_ppg_save_dir,
-                         num_loss_sample=50)
+                         num_loss_sample=200)
     # distort.scale(level=3, plot=False)
     # distort.shift_distortion(plot=False, txt= True)
-    distort.peak_distorted(ndp=4)
+    distort.peak_distorted(ndp=3)
