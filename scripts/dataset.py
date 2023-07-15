@@ -53,12 +53,13 @@ class BPDatasetRam(Dataset):
 
     def __init__(self,
                  data_annotations_file,
-                 device):
+                 device, num_data):
         self.data_annotations = pd.read_csv(data_annotations_file)
         self.data_dir = self.data_annotations["dir"]
         self.device = device
         self.total_data = np.empty((512))
         self.total_label = np.empty((512))
+        self.num_data = num_data
 
 
     def __len__(self):
@@ -85,6 +86,8 @@ class BPDatasetRam(Dataset):
             if signal.shape[0] == 512 and label.shape[0]== 512:
                 self.total_data = np.vstack((self.total_data, signal))
                 self.total_label = np.vstack((self.total_label, label))
+            if index == self.num_data:
+                break
         print("All data succesfully loaded in RAM, let's TRAIN")
 
 
