@@ -2,13 +2,8 @@ import os
 import torch
 from dataset import BPDatasetRam
 from torch.utils.data import DataLoader
-import torch.nn as nn
 from sklearn.metrics import r2_score
 from models.unet import UNetPPGtoABP
-from models.vnet import VNet
-from models.transformernet import TransformerBlock
-# from vnet import VNet1D
-# import  dataset
 import matplotlib.pyplot as plt
 import argparse
 from torch.utils.tensorboard import SummaryWriter
@@ -18,9 +13,6 @@ from torch.optim.lr_scheduler import  StepLR, CosineAnnealingLR, OneCycleLR, Red
 
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
-
-
-
 # Parameters
 main_data_path = r"D:\PPG2ABP\data_for_train"
 DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy"
