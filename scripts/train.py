@@ -14,7 +14,7 @@ import argparse
 from torch.utils.tensorboard import SummaryWriter
 from torch.nn import MSELoss, L1Loss
 from os import listdir
-from torch.optim.lr_scheduler import  StepLR, CosineAnnealingLR, OneCycleLR, ReduceLROnPlateau
+from torch.optim.lr_scheduler import  StepLR, CosineAnnealingLR, ConstantLR
 
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
@@ -33,9 +33,10 @@ LEARNING_RATE = .0001
 input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
-configs = {"models":[  UNetPPGtoABP()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
-           "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[.1],
-           "lr_scheduler":["Cosinanlealing", "ReduceLR", "StepR"]}
+#برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
+configs = {"models":[  UNetPPGtoABP(), TransformerBlock(), VNet()], "loss_func":[MSELoss()], "lr":[.00001, .0001],
+           "optimizer":["adam", "adagrad"],"batch_size":[4, 32], "drop_out":[.05, .1],
+           "lr_scheduler":["ConstantLR", "StepR"]}
 
 if torch.cuda.is_available():
 
@@ -201,13 +202,13 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training')
     return parser.parse_args()
 def main():
-
+    counter = 0
     for i in data_folder_list:
         data_train_path = os.path.join(DATASETS_PATH, i, "Data_Train_Annotation.csv")
         data_valid_path = os.path.join(DATASETS_PATH, i, "Data_valid_Annotation.csv")
         bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
         os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
-        start, end = 0, 20
+        start, end = 0, 25
         for drop in configs["drop_out"]:
             for model_type in configs["models"]:
                 model = model_type
@@ -218,11 +219,11 @@ def main():
                         optimiser = torch.optim.Adam(model.parameters(), lr=lr_rate)
                         for scheduler_type in configs["lr_scheduler"]:
                             if scheduler_type == "StepR":
-                                scheduler_lr = StepLR(optimiser, step_size=10, gamma=0.1)
+                                scheduler_lr = StepLR(optimiser, step_size=25, gamma=0.5)
                             elif scheduler_type == "Cosinanlealing":
-                                scheduler_lr = CosineAnnealingLR(optimiser, T_max=end, eta_min=0)
-                            elif scheduler_type == "ReduceLR":
-                                scheduler_lr = ReduceLROnPlateau(optimiser, mode='min', factor=0.1, patience=5, verbose=True)
+                                scheduler_lr = CosineAnnealingLR(optimiser, T_max=15, eta_min=0)
+                            elif scheduler_type == "ConstantLR":
+                                scheduler_lr = ConstantLR(optimiser, factor=0.5, total_iters=45)
                             for batch_size in configs["batch_size"]:
 
                                 data_loader_train = DataLoader(bp_data_train, batch_size, shuffle=True)
@@ -238,7 +239,10 @@ def main():
                                 log_dir = os.path.join(checkpoint_path, "run")
 
                                 writer = SummaryWriter(log_dir)
-
+                                counter += 1
+                                # if counter < 6:
+                                #     continue
+                                print(f"***********************COUNTER: {counter}***************************")
                                 train_loss = []
                                 valid_loss = []
                                 train_accuracy = []
