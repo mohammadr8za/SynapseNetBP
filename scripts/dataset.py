@@ -86,8 +86,8 @@ class BPDatasetRam(Dataset):
             if signal.shape[0] == 512 and label.shape[0]== 512:
                 self.total_data = np.vstack((self.total_data, signal))
                 self.total_label = np.vstack((self.total_label, label))
-            if index == self.num_data:
-                break
+            # if index == self.num_data:
+            #     break
         print("All data succesfully loaded in RAM, let's TRAIN")
 
 

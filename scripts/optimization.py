@@ -87,7 +87,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler_fn):
+def train(model, loss_fn, optimiser, data_loader_train,epoch):
 
 
 
@@ -107,7 +107,7 @@ def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler_fn):
         loss_total.update(loss)
         y_true += targets.cpu().numpy().tolist()
         y_pred += outputs.cpu().detach().numpy().tolist()
-        scheduler_fn.step()
+        # scheduler_fn.step()
         # print('batch \ totoal_data:',f'{(batch_idx/(len(data_loader_train))):.2}', f'loss: {loss_total.avg.item()}')
         # print(f"R2 : {r2_score(y_true, y_pred)} ")
         # if batch_idx == 100:
@@ -208,72 +208,60 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training')
     return parser.parse_args()
 
-def make_model():
+def make_train_model(learning_rate, batch_size, drop_out):
 
     i = 0
-    data_train_path = os.path.join(DATASETS_PATH, data_folder_list[i], "Data_Train_Annotation.csv")
-    data_valid_path = os.path.join(DATASETS_PATH, data_folder_list[i], "Data_valid_Annotation.csv")
-    bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
-    os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
+    os.makedirs(os.path.join("chekpointopt", f"{i}"), exist_ok=True)
     start, end = 0, 2
-    for drop in configs["drop_out"]:
-        for model_type in configs["models"]:
-            model = model_type
-            model.to(device)
-            for loss_func in configs["loss_func"]:
+    for model_type in configs["models"]:
+        model = model_type
+        model.to(device)
+        for loss_func in configs["loss_func"]:
                 loss_fn = loss_func
-                for lr_rate in configs["lr"]:
-                    optimiser = torch.optim.Adam(model.parameters(), lr=lr_rate)
-                    for scheduler_type in configs["lr_scheduler"]:
-                        if scheduler_type == "StepR":
-                            scheduler_lr = StepLR(optimiser, step_size=10, gamma=0.1)
-                        elif scheduler_type == "Cosinanlealing":
-                            scheduler_lr = CosineAnnealingLR(optimiser, T_max=end, eta_min=0)
-                        elif scheduler_type == "ReduceLR":
-                            scheduler_lr = ReduceLROnPlateau(optimiser, mode='min', factor=0.1, patience=5, verbose=True)
-                        for batch_size in configs["batch_size"]:
-
-                            data_loader_train = DataLoader(bp_data_train, batch_size, shuffle=True)
-                            data_loader_valid = DataLoader(bp_data_valid, batch_size, shuffle=True)
-                            args = parse_args()
-                            checkpoint = Checkpoint()
-                            checkpoint_path = os.path.join("checkpoint", i, f"drop_{drop}", f"{str(model._get_name())}",
-                                                           f"loss_{loss_fn._get_name() }",f"lr_{lr_rate}",f"batch_{batch_size}",
-                                                           scheduler_type)
-                            os.makedirs(checkpoint_path, exist_ok=True)
-                            os.makedirs(os.path.join(checkpoint_path, "run"), exist_ok=True)
-
-                            log_dir = os.path.join(checkpoint_path, "run")
-
-                            writer = SummaryWriter(log_dir)
-
-                            train_loss = []
-                            valid_loss = []
-                            train_accuracy = []
-                            valid_accuracy = []
-                            for epoch in range(start, end):
-                                TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
-                                                                 epoch,scheduler_fn= scheduler_lr)
-                                ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
-                                                                 epoch, checkpoint, i,
-                                                                 checkpoint_path)
-                                train_loss.append(TrainLoss)
-                                train_accuracy.append(TrainAccuracy)
-                                valid_loss.append(ValidLoss)
-                                valid_accuracy.append(ValidAccuracy)
-                                result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, i, checkpoint_path)
-                                writer.add_scalars(main_tag="accuracy",
-                                                   tag_scalar_dict={"train_accuracy": TrainAccuracy,
-                                                                    "valid_accuracy": ValidAccuracy},
-                                                   global_step=epoch)
-                                writer.add_scalars(main_tag="loss",
-                                                   tag_scalar_dict={"train_loss": TrainLoss,
-                                                                    "valid_loss": ValidLoss},
-                                                   global_step=epoch)
-                            writer.close()
+                optimiser = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 
+                data_loader_train = DataLoader(bp_data_train, batch_size, shuffle=True)
+                data_loader_valid = DataLoader(bp_data_valid, batch_size, shuffle=True)
+                args = parse_args()
+                checkpoint = Checkpoint()
+                checkpoint_path = os.path.join("checkpointopt", f"{i}", f"drop_{drop_out}", f"{str(model._get_name())}",
+                                               f"loss_{loss_fn._get_name() }",f"lr_{learning_rate}",
+                                               f"batch_{batch_size}")
+                os.makedirs(checkpoint_path, exist_ok=True)
+                os.makedirs(os.path.join(checkpoint_path, "run"), exist_ok=True)
 
+                log_dir = os.path.join(checkpoint_path, "run")
+
+                writer = SummaryWriter(log_dir)
+
+                train_loss = 0
+                valid_loss = 0
+                train_accuracy = 0
+                valid_accuracy = 0
+                for epoch in range(start, end):
+                    TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
+                                                     epoch)
+                    ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
+                                                     epoch, checkpoint, i,
+                                                     checkpoint_path)
+                    train_loss = TrainLoss
+                    train_accuracy = TrainAccuracy
+                    valid_loss = ValidLoss
+                    valid_accuracy = ValidAccuracy
+                    result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, i, checkpoint_path)
+                    writer.add_scalars(main_tag="accuracy",
+                                       tag_scalar_dict={"train_accuracy": TrainAccuracy,
+                                                        "valid_accuracy": ValidAccuracy},
+                                       global_step=epoch)
+                    writer.add_scalars(main_tag="loss",
+                                       tag_scalar_dict={"train_loss": TrainLoss,
+                                                        "valid_loss": ValidLoss},
+                                       global_step=epoch)
+                writer.close()
+
+
+                return valid_accuracy
 
 
 
@@ -285,21 +273,23 @@ def objective_function(params):
     learning_rate, batch_size, drop_out = params
 
     # Create a deep model with the given hyperparameters
-    # model = MLPClassifier(hidden_layer_sizes=(num_neurons,) * num_hidden_layers,
-    #                       batch_size=batch_size,
-    #                       learning_rate_init=learning_rate)
-    #
+    valid_accuracy = make_train_model(learning_rate, int(batch_size), drop_out)
+
     # # Train the model on the training set and evaluate on the validation set
     # model.fit(X_train, y_train)
     # val_acc = model.score(X_val, y_val)
 
     # Return the negative validation accuracy (PSO minimizes the objective function)
-    return 25
+    return -valid_accuracy
 
 
+
+data_train_path = os.path.join(DATASETS_PATH, data_folder_list[0], "Data_Train_Annotation.csv")
+data_valid_path = os.path.join(DATASETS_PATH, data_folder_list[0], "Data_valid_Annotation.csv")
+bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path, 50)
 # Perform PSO to optimize the hyperparameters
-num_particles = 10
-max_iterations = 50
+num_particles = 2
+max_iterations = 2
 lb = [s[0] for s in search_space]
 ub = [s[1] for s in search_space]
 xopt, fopt = pso(objective_function, lb, ub, swarmsize=num_particles, maxiter=max_iterations)
