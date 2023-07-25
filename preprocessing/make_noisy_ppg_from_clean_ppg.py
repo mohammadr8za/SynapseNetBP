@@ -40,22 +40,38 @@ def distortion(ppg_chunk, num_peaks, rnd_peaks, count, length):
     if num_peaks > 5:
         if count <= divide:
             for peak in rnd_peaks:
-                ppg_chunk[peak - 5: peak] = np.flip(ppg_chunk[peak - 10: peak - 5])
-                ppg_chunk[peak: peak + 7] = np.flip(ppg_chunk[peak + 7: peak + 14])
+                if peak > 10 and peak < ppg_chunk.shape[0] - 14:
+                    ppg_chunk[peak - 5: peak] = np.flip(ppg_chunk[peak - 10: peak - 5])
+                    ppg_chunk[peak: peak + 7] = np.flip(ppg_chunk[peak + 7: peak + 14])
+                else:
+                    continue
+
         else:
             for peak in rnd_peaks:
-                ppg_chunk[peak - 5: peak] += ppg_chunk[peak - 5: peak]
-                ppg_chunk[peak: peak + 5] += ppg_chunk[peak: peak + 5]
+                if peak > 5:
+                    ppg_chunk[peak - 5: peak] += ppg_chunk[peak - 5: peak]
+                    ppg_chunk[peak: peak + 5] += ppg_chunk[peak: peak + 5]
+                else:
+                    continue
+
 
     else:
         if count <= divide:
             for peak in rnd_peaks:
-                ppg_chunk[peak - 5: peak] = np.flip(ppg_chunk[peak - 10: peak - 5])
-                ppg_chunk[peak: peak + 10] = np.flip(ppg_chunk[peak + 10: peak + 20])
+                if peak > 10 and peak < ppg_chunk.shape[0] - 20:
+                    ppg_chunk[peak - 5: peak] = np.flip(ppg_chunk[peak - 10: peak - 5])
+                    ppg_chunk[peak: peak + 10] = np.flip(ppg_chunk[peak + 10: peak + 20])
+                else:
+                    continue
+
         else:
             for peak in rnd_peaks:
-                ppg_chunk[peak - 5: peak] += ppg_chunk[peak - 5: peak]
-                ppg_chunk[peak: peak + 10] += ppg_chunk[peak: peak + 10]
+                if peak > 5:
+                    ppg_chunk[peak - 5: peak] += ppg_chunk[peak - 5: peak]
+                    ppg_chunk[peak: peak + 10] += ppg_chunk[peak: peak + 10]
+                else:
+                    continue
+
 
 
 
@@ -226,15 +242,34 @@ class make_noisy():
             plot_path.mkdir(parents=True, exist_ok=True)
 
         for count, clean_ppg_name in enumerate(self.clean_ppg_list):
-
+            print(count)
             ppg_chunk = np.loadtxt(os.path.join(self.clean_ppg_txt_directory, clean_ppg_name.replace('png', 'txt')))
 
-            peaks, _ = find_peaks(ppg_chunk, width=20, distance=20)
+            peaks, _ = find_peaks(ppg_chunk, width=17, distance=20, height=1.9)
+
+            if peaks.shape[0] == 0:
+                print(f"empty peaks {count}")
+
+                if plot:
+                    plt.figure()
+                    plt.plot(ppg_chunk)
+                    plt.title(f'Noise Type: Peak Distortion')
+                    plt.savefig(join(plot_path, clean_ppg_name))
+                    # plt.show()
+                    plt.close()
+                if txt:
+                    np.savetxt(join(txt_path, clean_ppg_name.replace('png', 'txt')), ppg_chunk)
+
+                continue
+
+            if count==21:
+                print(peaks)
 
             if ndp <= peaks.shape[0] - 1:
                 rnd_peaks = np.random.choice(peaks, size=ndp, replace=False)
             else:
-                rnd_peaks = np.random.choice(peaks, size=ppg_chunk.shape[0], replace=False)
+                rnd_peaks = np.random.choice(peaks, size=peaks.shape[0] - 1, replace=False)
+
 
             distortion(ppg_chunk, peaks.shape[0], rnd_peaks, count, len(self.clean_ppg_list))
 
@@ -263,4 +298,5 @@ if __name__ == '__main__':
                          num_loss_sample=200)
     # distort.scale(level=3, plot=False)
     # distort.shift_distortion(plot=False, txt= True)
-    distort.peak_distorted(ndp=3)
+    # distort.peak_distorted(ndp=3)
+    distort.sectoral_loss(plot=False, txt=True)

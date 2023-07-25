@@ -6,13 +6,13 @@ import matplotlib.pyplot as plt
 from scipy.signal import correlate
 
 #     G E N E R A  L     S E T U P
-ppg_save_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\ppg_p3'
-abp_save_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\abp_p3'
+ppg_save_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\ppg_p1'
+abp_save_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\abp_p1'
 fs = 125
 T = 1 / fs
 chunk_in_sec = 4.096
 chunk_in_sample = int(chunk_in_sec / T)
-part_number = 3
+part_number = 1
 
 if part_number == 1:
     annots_1 = loadmat('D:\PythonProjects\PPGBP\Part_1.mat')
@@ -43,15 +43,15 @@ for sig in range(len(part)):
         chunk_name = str(part_number) + '-' + str(sig) + '-' + str(
             num)  # [Part-Sig-Chunk]  -> 1-200-18 means chunk 18 from 200-th signal in Part 1 <-
         ppg_chunk = ppg_sig[num * chunk_in_sample: (num + 1) * chunk_in_sample]
-        plt.figure()
-        plt.plot(np.arange(0, ppg_chunk.shape[0]), ppg_chunk)
-        plt.savefig(os.path.join(ppg_save_dir, 'fig', chunk_name) + '.png')
-        plt.close()
-        np.savetxt(os.path.join(ppg_save_dir, 'txt', chunk_name) + '.txt', ppg_chunk, fmt='%f')
+        # plt.figure()
+        # plt.plot(np.arange(0, ppg_chunk.shape[0]), ppg_chunk)
+        # plt.savefig(os.path.join(ppg_save_dir, 'fig', chunk_name) + '.png')
+        # plt.close()
+        # np.savetxt(os.path.join(ppg_save_dir, 'txt', chunk_name) + '.txt', ppg_chunk, fmt='%f')
 
         abp_chunk = abp_sig[num * chunk_in_sample: (num + 1) * chunk_in_sample]
         # plt.figure()
         # plt.plot(np.arange(0, abp_chunk.shape[0]), abp_chunk)
-        # plt.savefig(os.path.join(abp_save_dir, chunk_name) + '.png')
+        # plt.savefig(os.path.join(abp_save_dir, 'fig', chunk_name) + '.png')
         # plt.close()
-        # np.savetxt(os.path.join(abp_save_dir, chunk_name) + '.txt', abp_chunk, fmt='%f')
+        np.savetxt(os.path.join(abp_save_dir, 'txt', chunk_name) + '.txt', abp_chunk, fmt='%f')

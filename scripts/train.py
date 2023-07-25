@@ -4,6 +4,7 @@ from dataset import BPDatasetRam
 from torch.utils.data import DataLoader
 from sklearn.metrics import r2_score
 from models.unet import UNetPPGtoABP
+from models.vnet import VNet
 import matplotlib.pyplot as plt
 import argparse
 from torch.utils.tensorboard import SummaryWriter
@@ -16,6 +17,7 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # Parameters
 main_data_path = r"D:\PPG2ABP\data_for_train"
 DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy"
+PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\sect_200\drop_0.08899185730183788\VNet\loss_MSELoss\lr_0.07538369897094946\batch_39\ConstantLR\epoch3.pth"
 #TODO: get list of data sets for train, like noisy_scale_100 and etc.
 data_folder_list = listdir(DATASETS_PATH)
 Batch_size = 4
@@ -26,8 +28,8 @@ input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
 #برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
-configs = {"models":[  UNetPPGtoABP(), TransformerBlock(), VNet()], "loss_func":[MSELoss()], "lr":[.00001, .0001],
-           "optimizer":["adam", "adagrad"],"batch_size":[4, 32], "drop_out":[.05, .1],
+configs = {"models":[  VNet()], "loss_func":[MSELoss()], "lr":[0.00001],
+           "optimizer":["adam", "adagrad"],"batch_size":[64], "drop_out":[0.08899185730183788],
            "lr_scheduler":["ConstantLR", "StepR"]}
 
 if torch.cuda.is_available():
@@ -40,10 +42,10 @@ else:
 
 def load_data(train_data_annotation_path ,valid_data_annotation_path ):
 
-    bp_data_train = BPDatasetRam(train_data_annotation_path, device)
+    bp_data_train = BPDatasetRam(train_data_annotation_path, device, num_data=50)
     bp_data_train._load_data_to_RAM()
 
-    bp_data_valid = BPDatasetRam(valid_data_annotation_path, device)
+    bp_data_valid = BPDatasetRam(valid_data_annotation_path, device, num_data=50)
     bp_data_valid._load_data_to_RAM()
 
     return bp_data_train, bp_data_valid
@@ -196,14 +198,17 @@ def parse_args():
 def main():
     counter = 0
     for i in data_folder_list:
+        i="sect_200"
         data_train_path = os.path.join(DATASETS_PATH, i, "Data_Train_Annotation.csv")
         data_valid_path = os.path.join(DATASETS_PATH, i, "Data_valid_Annotation.csv")
         bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
         os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
-        start, end = 0, 25
+        start, end = 0, 100
         for drop in configs["drop_out"]:
             for model_type in configs["models"]:
                 model = model_type
+                stat_dict = torch.load(PRETRAIN_MODEL)
+                model.load_state_dict(stat_dict["net"])
                 model.to(device)
                 for loss_func in configs["loss_func"]:
                     loss_fn = loss_func
