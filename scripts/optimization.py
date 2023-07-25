@@ -8,6 +8,8 @@ from dataset import BPDatasetRam
 from torch.utils.data import DataLoader
 from sklearn.metrics import r2_score
 from models.unet import UNetPPGtoABP
+from models.transformernet import TransformerBlock
+from models.vnet import VNet
 import matplotlib.pyplot as plt
 import argparse
 from torch.utils.tensorboard import SummaryWriter
@@ -23,8 +25,8 @@ X_train, X_val, y_train, y_val = train_test_split(digits.data, digits.target, te
 
 # Define the hyperparameter search space
 search_space = [(1e-5, 1e-1),  # learning rate
-                (16, 128),  # batch size
-                (.01, .05)]  # dropout
+                (4, 256),  # batch size
+                (.01, .1)]  # dropout
 
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
@@ -40,7 +42,7 @@ LEARNING_RATE = .0001
 input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
-configs = {"models":[  UNetPPGtoABP()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
+configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
            "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[.1],
            "lr_scheduler":["Cosinanlealing", "ReduceLR", "StepR"]}
 
@@ -87,7 +89,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-def train(model, loss_fn, optimiser, data_loader_train,epoch):
+def train(model, loss_fn, optimiser, data_loader_train,epoch, batch_size):
 
 
 
@@ -98,6 +100,8 @@ def train(model, loss_fn, optimiser, data_loader_train,epoch):
     y_pred = []
 
     for batch_idx, (inputs, targets) in enumerate(data_loader_train):
+        if inputs.shape[0] !=  batch_size or targets.shape[0] != batch_size:
+            continue
         inputs, targets = inputs.to(device), targets.to(device)
         optimiser.zero_grad()
         outputs = model(inputs.unsqueeze(1))
@@ -118,7 +122,7 @@ def train(model, loss_fn, optimiser, data_loader_train,epoch):
 
     return loss_total.avg.item(), r2
 
-def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_name, check_dir):
+def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_name, check_dir, batch_size):
     print(f"************* validation eopch:{epoch}***************")
     model.eval()
     loss_total = AverageMeter()
@@ -126,6 +130,8 @@ def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_n
     y_pred = []
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(data_loader_valid):
+            if inputs.shape[0] != batch_size or targets.shape[0] != batch_size:
+                continue
             inputs, targets = inputs.to(device), targets.to(device)
             outputs = model(inputs.unsqueeze(1))
             loss = loss_fn(outputs, targets)
@@ -208,11 +214,11 @@ def parse_args():
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training')
     return parser.parse_args()
 
-def make_train_model(learning_rate, batch_size, drop_out):
+def make_train_model(learning_rate, batch_size_for_train, drop_out):
 
-    i = 0
+    i = 5
     os.makedirs(os.path.join("chekpointopt", f"{i}"), exist_ok=True)
-    start, end = 0, 2
+    start, end = 0, 5
     for model_type in configs["models"]:
         model = model_type
         model.to(device)
@@ -221,13 +227,13 @@ def make_train_model(learning_rate, batch_size, drop_out):
                 optimiser = torch.optim.Adam(model.parameters(), lr=learning_rate)
 
 
-                data_loader_train = DataLoader(bp_data_train, batch_size, shuffle=True)
-                data_loader_valid = DataLoader(bp_data_valid, batch_size, shuffle=True)
+                data_loader_train = DataLoader(bp_data_train, batch_size_for_train, shuffle=True)
+                data_loader_valid = DataLoader(bp_data_valid, batch_size_for_train, shuffle=True)
                 args = parse_args()
                 checkpoint = Checkpoint()
                 checkpoint_path = os.path.join("checkpointopt", f"{i}", f"drop_{drop_out}", f"{str(model._get_name())}",
                                                f"loss_{loss_fn._get_name() }",f"lr_{learning_rate}",
-                                               f"batch_{batch_size}")
+                                               f"batch_{batch_size_for_train}")
                 os.makedirs(checkpoint_path, exist_ok=True)
                 os.makedirs(os.path.join(checkpoint_path, "run"), exist_ok=True)
 
@@ -241,10 +247,10 @@ def make_train_model(learning_rate, batch_size, drop_out):
                 valid_accuracy = 0
                 for epoch in range(start, end):
                     TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
-                                                     epoch)
+                                                     epoch, batch_size_for_train)
                     ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
                                                      epoch, checkpoint, i,
-                                                     checkpoint_path)
+                                                     checkpoint_path, batch_size_for_train)
                     train_loss = TrainLoss
                     train_accuracy = TrainAccuracy
                     valid_loss = ValidLoss
@@ -270,10 +276,10 @@ def make_train_model(learning_rate, batch_size, drop_out):
 # Define the objective function to minimize
 def objective_function(params):
     # Unpack the hyperparameters
-    learning_rate, batch_size, drop_out = params
+    learning_rate, batch_size_from_pso, drop_out = params
 
     # Create a deep model with the given hyperparameters
-    valid_accuracy = make_train_model(learning_rate, int(batch_size), drop_out)
+    valid_accuracy = make_train_model(learning_rate, int(batch_size_from_pso), drop_out)
 
     # # Train the model on the training set and evaluate on the validation set
     # model.fit(X_train, y_train)
@@ -284,16 +290,19 @@ def objective_function(params):
 
 
 
-data_train_path = os.path.join(DATASETS_PATH, data_folder_list[0], "Data_Train_Annotation.csv")
-data_valid_path = os.path.join(DATASETS_PATH, data_folder_list[0], "Data_valid_Annotation.csv")
+data_train_path = os.path.join(DATASETS_PATH, data_folder_list[6], "Data_Train_Annotation.csv")
+data_valid_path = os.path.join(DATASETS_PATH, data_folder_list[6], "Data_valid_Annotation.csv")
 bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path, 50)
+
 # Perform PSO to optimize the hyperparameters
-num_particles = 2
-max_iterations = 2
+num_particles = 4
+max_iterations = 4
 lb = [s[0] for s in search_space]
 ub = [s[1] for s in search_space]
 xopt, fopt = pso(objective_function, lb, ub, swarmsize=num_particles, maxiter=max_iterations)
 
 # Print the optimal hyperparameters and validation accuracy
-print("Optimal hyperparameters:", xopt)
-print("Validation accuracy:", -fopt)
+print("Optimal learning rate:", xopt[0])
+print("Optimal batch_size:", xopt[1])
+print("Optimal drop_out:", xopt[2])
+print("best Validation accuracy:", -fopt)
