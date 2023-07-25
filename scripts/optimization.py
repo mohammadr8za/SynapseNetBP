@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 from sklearn.metrics import r2_score
 from models.unet import UNetPPGtoABP
 from models.transformernet import TransformerBlock
+from models.unetattention import UNetAttention
 from models.vnet import VNet
 import matplotlib.pyplot as plt
 import argparse
@@ -42,7 +43,7 @@ LEARNING_RATE = .0001
 input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
-configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
+configs = {"models":[  UNetAttention()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
            "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[.1],
            "lr_scheduler":["Cosinanlealing", "ReduceLR", "StepR"]}
 

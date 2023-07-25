@@ -20,9 +20,9 @@ class AttentionBlock(nn.Module):
         return output
 
 
-class UNetPPGtoABP(nn.Module):
+class UNetAttention(nn.Module):
     def __init__(self, dropout=0.1):
-        super(UNetPPGtoABP, self).__init__()
+        super(UNetAttention, self).__init__()
         self.dropout = dropout
 
         # Define the encoder
