@@ -11,12 +11,12 @@ class AttentionBlock(nn.Module):
         self.conv3 = nn.Conv1d(in_channels // 2, 1, kernel_size=1)
 
     def forward(self, x):
-        query = self.conv1(x.unsqueeze(0))  # Add extra batch dimension
-        key = self.conv2(x.unsqueeze(0))  # Add extra batch dimension
+        query = self.conv1(x)  # Add extra batch dimension
+        key = self.conv2(x)  # Add extra batch dimension
         energy = torch.matmul(query.transpose(2, 1), key)
         attention_weights = F.softmax(energy, dim=2)
-        attended = torch.matmul(attention_weights, x.unsqueeze(0))  # Add extra batch dimension
-        output = self.conv3(attended).squeeze(0)  # Remove extra batch dimension
+        attended = torch.matmul(attention_weights, x)  # Add extra batch dimension
+        output = self.conv3(attended)  # Remove extra batch dimension
         return output
 
 

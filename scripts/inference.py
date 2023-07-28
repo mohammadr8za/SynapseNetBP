@@ -6,6 +6,8 @@ import torch
 from dataset import BPDatasetRam
 from torch.utils.data import DataLoader
 from models.unet import UNetPPGtoABP
+from models.vnet import VNet
+from models.transformernet import TransformerBlock
 from make_annotation import MakeMainAnnotation
 from snrloss import Snr
 from sklearn.metrics import mean_squared_error
@@ -39,21 +41,21 @@ else:
 
 
 # Make annotaion file for inference data
-MakeMainAnnotation(inference_data_path, mode="inference")
+# MakeMainAnnotation(inference_data_path, mode="inference")
 
 # Load data and create a data loader
-bp_data_inference = BPDatasetRam(inference_data_annotation_path, device)
+bp_data_inference = BPDatasetRam(inference_data_annotation_path, device, num_data=50)
 bp_data_inference._load_data_to_RAM()
-data_loader_inference = DataLoader(bp_data_inference, Batch_size, shuffle=True)
-stat_dict = torch.load(r"D:\PythonProjects\Git\PPG2ABP\scripts\chekpoint\200_sample_loss\BPmodelepoch15.pth")
+data_loader_inference = DataLoader(bp_data_inference, Batch_size, shuffle=False)
+stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\final_optimized_net\transformer\lr_1e-05\batch_16\ConstantLR\epoch1.pth")
 # model = Transformer(input_shape)
-model = UNetPPGtoABP()
+model = TransformerBlock()
 model.load_state_dict(stat_dict['net'])
 model.eval()
 model.to(device)
 
 
-def inference():
+def inference(): 
     r2_each_sample_seperate = np.empty((1,))
     mse_loss_each_sample_saperate = np.empty((1,))
     mae_loss_each_sample_saperate = np.empty((1,))

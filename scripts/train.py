@@ -4,6 +4,7 @@ from dataset import BPDatasetRam
 from torch.utils.data import DataLoader
 from sklearn.metrics import r2_score
 from models.unet import UNetPPGtoABP
+from models.transformernet import TransformerBlock
 from models.vnet import VNet
 import matplotlib.pyplot as plt
 import argparse
@@ -17,7 +18,7 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # Parameters
 main_data_path = r"D:\PPG2ABP\data_for_train"
 DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy"
-PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\sect_200\drop_0.08899185730183788\VNet\loss_MSELoss\lr_0.07538369897094946\batch_39\ConstantLR\epoch3.pth"
+PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\sect_200\drop_0.08899\TransformerBlock\loss_MSELoss\lr_0.0001\batch_16\ConstantLR\epoch99.pth"
 #TODO: get list of data sets for train, like noisy_scale_100 and etc.
 data_folder_list = listdir(DATASETS_PATH)
 Batch_size = 4
@@ -28,8 +29,8 @@ input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
 #برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
-configs = {"models":[  VNet()], "loss_func":[MSELoss()], "lr":[0.00001],
-           "optimizer":["adam", "adagrad"],"batch_size":[64], "drop_out":[0.08899185730183788],
+configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss()], "lr":[0.00001],
+           "optimizer":["adam", "adagrad"],"batch_size":[16], "drop_out":[0.08899],
            "lr_scheduler":["ConstantLR", "StepR"]}
 
 if torch.cuda.is_available():
