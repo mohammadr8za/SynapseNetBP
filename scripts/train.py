@@ -12,7 +12,7 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.nn import MSELoss, L1Loss
 from os import listdir
 from torch.optim.lr_scheduler import  StepLR, CosineAnnealingLR, ConstantLR
-
+import numpy as np
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # Parameters
@@ -76,61 +76,122 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler_fn):
+def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler_fn, train_mode):
 
 
+    if train_mode == "s":
+        print(f"*************training eopch:{epoch}***************")
+        model.train()
+        loss_total = AverageMeter()
+        y_true = []
+        y_pred = []
 
-    print(f"*************training eopch:{epoch}***************")
-    model.train()
-    loss_total = AverageMeter()
-    y_true = []
-    y_pred = []
-
-    for batch_idx, (inputs, targets) in enumerate(data_loader_train):
-        inputs, targets = inputs.to(device), targets.to(device)
-        optimiser.zero_grad()
-        outputs = model(inputs.unsqueeze(1))
-        loss = loss_fn(outputs, targets)
-        loss.backward()
-        optimiser.step()
-        loss_total.update(loss)
-        y_true += targets.cpu().numpy().tolist()
-        y_pred += outputs.cpu().detach().numpy().tolist()
-        scheduler_fn.step()
-        # print('batch \ totoal_data:',f'{(batch_idx/(len(data_loader_train))):.2}', f'loss: {loss_total.avg.item()}')
-        # print(f"R2 : {r2_score(y_true, y_pred)} ")
-        # if batch_idx == 100:
-        #     break
-    r2 = r2_score(y_true, y_pred)
-    print(f"TRAIN R2 : {r2} ")
-
-
-    return loss_total.avg.item(), r2
-
-def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_name, check_dir):
-    print(f"************* validation eopch:{epoch}***************")
-    model.eval()
-    loss_total = AverageMeter()
-    y_true = []
-    y_pred = []
-    with torch.no_grad():
-        for batch_idx, (inputs, targets) in enumerate(data_loader_valid):
+        for batch_idx, (inputs, targets) in enumerate(data_loader_train):
             inputs, targets = inputs.to(device), targets.to(device)
+            optimiser.zero_grad()
             outputs = model(inputs.unsqueeze(1))
             loss = loss_fn(outputs, targets)
+            loss.backward()
+            optimiser.step()
             loss_total.update(loss)
             y_true += targets.cpu().numpy().tolist()
             y_pred += outputs.cpu().detach().numpy().tolist()
-            # if batch_idx==2:
+            scheduler_fn.step()
+            # print('batch \ totoal_data:',f'{(batch_idx/(len(data_loader_train))):.2}', f'loss: {loss_total.avg.item()}')
+            # print(f"R2 : {r2_score(y_true, y_pred)} ")
+            # if batch_idx == 100:
             #     break
-    r2 = r2_score(y_true, y_pred)
-    print(f"VALID R2 : {r2} ")
+        r2 = r2_score(y_true, y_pred)
+        print(f"TRAIN R2 : {r2} ")
 
-    checkpoint.save(model=model, acc=r2, filename=f"BPmodel",loss=loss_total.avg.item(),
-                    loss_type=loss_fn, batch_size=Batch_size,
-                    optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch,data_name= data_name, check_dir=check_dir)
 
-    return loss_total.avg.item(), r2
+        return loss_total.avg.item(), r2
+    elif train_mode == "ss":
+        print(f"*************self supervised training eopch:{epoch}***************")
+        model.train()
+        loss_total = AverageMeter()
+        y_true = []
+        y_pred = []
+
+        for batch_idx, (inputs, targets) in enumerate(data_loader_train):
+            # if inputs.shape[0] != batch_size or targets.shape[0] != batch_size:
+            #     continue
+            inputs, targets = inputs.to(device), targets.to(device)
+            optimiser.zero_grad()
+            random_index_for_mask = np.random.randint(0, 400)
+            inputs = targets
+            inputs[0][random_index_for_mask: random_index_for_mask + 100] = 0
+            outputs = model(inputs.unsqueeze(1))
+            loss = loss_fn(outputs, targets)
+            loss.backward()
+            optimiser.step()
+            loss_total.update(loss)
+            y_true += targets.cpu().numpy().tolist()
+            y_pred += outputs.cpu().detach().numpy().tolist()
+            # scheduler_fn.step()
+            # print('batch \ totoal_data:',f'{(batch_idx/(len(data_loader_train))):.2}', f'loss: {loss_total.avg.item()}')
+            # print(f"R2 : {r2_score(y_true, y_pred)} ")
+            # if batch_idx == 100:
+            #     break
+        r2 = r2_score(y_true, y_pred)
+        print(f"TRAIN R2 : {r2} ")
+
+        return loss_total.avg.item(), r2
+def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_name, check_dir, train_mode):
+    if train_mode == "s":
+        print(f"************* validation eopch:{epoch}***************")
+        model.eval()
+        loss_total = AverageMeter()
+        y_true = []
+        y_pred = []
+        with torch.no_grad():
+            for batch_idx, (inputs, targets) in enumerate(data_loader_valid):
+                inputs, targets = inputs.to(device), targets.to(device)
+                outputs = model(inputs.unsqueeze(1))
+                loss = loss_fn(outputs, targets)
+                loss_total.update(loss)
+                y_true += targets.cpu().numpy().tolist()
+                y_pred += outputs.cpu().detach().numpy().tolist()
+                # if batch_idx==2:
+                #     break
+        r2 = r2_score(y_true, y_pred)
+        print(f"VALID R2 : {r2} ")
+
+        checkpoint.save(model=model, acc=r2, filename=f"BPmodel",loss=loss_total.avg.item(),
+                        loss_type=loss_fn, batch_size=Batch_size,
+                        optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch,data_name= data_name, check_dir=check_dir)
+
+        return loss_total.avg.item(), r2
+    elif train_mode == "ss":
+        print(f"************* self supervised validation eopch:{epoch}***************")
+        model.eval()
+        loss_total = AverageMeter()
+        y_true_valid = []
+        y_pred_valid = []
+        with torch.no_grad():
+            for batch_idx, (inputs, targets) in enumerate(data_loader_valid):
+                if inputs.shape[0] != batch_size or targets.shape[0] != batch_size:
+                    continue
+                inputs, targets = inputs.to(device), targets.to(device)
+                random_index_for_mask = np.random.randint(0, 400)
+                inputs = targets
+                inputs[0][random_index_for_mask: random_index_for_mask + 100] = 0
+                outputs = model(inputs.unsqueeze(1))
+                loss = loss_fn(outputs, targets)
+                loss_total.update(loss)
+                y_true_valid += targets.cpu().numpy().tolist()
+                y_pred_valid += outputs.cpu().detach().numpy().tolist()
+                # if batch_idx==2:
+                #     break
+        r2 = r2_score(y_true_valid, y_pred_valid)
+        print(f"VALID R2 : {r2} ")
+        checkpoint.save(model=model, acc=r2, filename=f"BPmodel", loss=loss_total.avg.item(),
+                        loss_type=loss_fn, batch_size=Batch_size,
+                        optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch, data_name=data_name,
+                        check_dir=check_dir)
+
+        return loss_total.avg.item(), r2
+
 
 class Checkpoint(object):
     def __init__(self):
@@ -247,10 +308,10 @@ def main():
                                 valid_accuracy = []
                                 for epoch in range(start, end):
                                     TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
-                                                                     epoch,scheduler_fn= scheduler_lr)
+                                                                     epoch,scheduler_fn= scheduler_lr, train_mode="ss")
                                     ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
                                                                      epoch, checkpoint, i,
-                                                                     checkpoint_path)
+                                                                     checkpoint_path, train_mode= "ss")
                                     train_loss.append(TrainLoss)
                                     train_accuracy.append(TrainAccuracy)
                                     valid_loss.append(ValidLoss)
