@@ -43,7 +43,7 @@ LEARNING_RATE = .0001
 input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
-configs = {"models":[  UNetAttention()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
+configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
            "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[.1],
            "lr_scheduler":["Cosinanlealing", "ReduceLR", "StepR"]}
 
@@ -90,10 +90,10 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-def train(model, loss_fn, optimiser, data_loader_train,epoch, batch_size, train_mod):
+def train(model, loss_fn, optimiser, data_loader_train,epoch, batch_size, train_mode):
 
 
-    if train_mod == "s": # ss means self-supervised training
+    if train_mode == "s": # ss means self-supervised training
         print(f"*************training eopch:{epoch}***************")
         model.train()
         loss_total = AverageMeter()
@@ -123,7 +123,7 @@ def train(model, loss_fn, optimiser, data_loader_train,epoch, batch_size, train_
 
         return loss_total.avg.item(), r2
 
-    elif train_mod == "ss": # s means supervised training
+    elif train_mode == "ss": # s means supervised training
         print(f"*************self supervised training eopch:{epoch}***************")
         model.train()
         loss_total = AverageMeter()
@@ -135,9 +135,10 @@ def train(model, loss_fn, optimiser, data_loader_train,epoch, batch_size, train_
                 continue
             inputs, targets = inputs.to(device), targets.to(device)
             optimiser.zero_grad()
-            random_index_for_mask = np.random.randint(0,450)
-            targets[0][random_index_for_mask: random_index_for_mask+50] = 0
-            outputs = model(targets.unsqueeze(1))
+            random_index_for_mask = np.random.randint(0,400)
+            inputs = targets
+            inputs[0][random_index_for_mask: random_index_for_mask+100] = 0
+            outputs = model(inputs.unsqueeze(1))
             loss = loss_fn(outputs, targets)
             loss.backward()
             optimiser.step()
@@ -180,29 +181,37 @@ def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_n
                         optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch,data_name= data_name, check_dir=check_dir)
 
         return loss_total.avg.item(), r2
+
     elif train_mode == "ss":
         print(f"************* self supervised validation eopch:{epoch}***************")
         model.eval()
         loss_total = AverageMeter()
-        y_true = []
-        y_pred = []
+        y_true_valid = []
+        y_pred_valid = []
         with torch.no_grad():
             for batch_idx, (inputs, targets) in enumerate(data_loader_valid):
                 if inputs.shape[0] != batch_size or targets.shape[0] != batch_size:
                     continue
                 inputs, targets = inputs.to(device), targets.to(device)
-                random_index_for_mask = np.random.randint(0, 450)
-                targets[0][random_index_for_mask: random_index_for_mask + 50] = 0
-
-                outputs = model(targets.unsqueeze(1))
+                random_index_for_mask = np.random.randint(0, 400)
+                inputs = targets
+                inputs[0][random_index_for_mask: random_index_for_mask + 100] = 0
+                outputs = model(inputs.unsqueeze(1))
                 loss = loss_fn(outputs, targets)
                 loss_total.update(loss)
-                y_true += targets.cpu().numpy().tolist()
-                y_pred += outputs.cpu().detach().numpy().tolist()
+                y_true_valid += targets.cpu().numpy().tolist()
+                y_pred_valid += outputs.cpu().detach().numpy().tolist()
                 # if batch_idx==2:
                 #     break
-        r2 = r2_score(y_true, y_pred)
+        r2 = r2_score(y_true_valid, y_pred_valid)
         print(f"VALID R2 : {r2} ")
+        checkpoint.save(model=model, acc=r2, filename=f"BPmodel", loss=loss_total.avg.item(),
+                        loss_type=loss_fn, batch_size=Batch_size,
+                        optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch, data_name=data_name,
+                        check_dir=check_dir)
+
+        return loss_total.avg.item(), r2
+
 
 class Checkpoint(object):
     def __init__(self):
@@ -270,10 +279,10 @@ def parse_args():
     return parser.parse_args()
 
 def make_train_model(learning_rate, batch_size_for_train, drop_out):
-
-    i = 5
+    valid_accuracy = 0
+    i = 6
     os.makedirs(os.path.join("chekpointopt", f"{i}"), exist_ok=True)
-    start, end = 0, 5
+    start, end = 0, 4
     for model_type in configs["models"]:
         model = model_type
         model.to(device)
@@ -299,13 +308,13 @@ def make_train_model(learning_rate, batch_size_for_train, drop_out):
                 train_loss = 0
                 valid_loss = 0
                 train_accuracy = 0
-                valid_accuracy = 0
+
                 for epoch in range(start, end):
                     TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
-                                                     epoch, batch_size_for_train, train_mod="ss")
+                                                     epoch, batch_size_for_train, train_mode="ss")
                     ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
                                                      epoch, checkpoint, i,
-                                                     checkpoint_path, batch_size_for_train, train_mod="ss")
+                                                     checkpoint_path, batch_size_for_train, train_mode="ss")
                     train_loss = TrainLoss
                     train_accuracy = TrainAccuracy
                     valid_loss = ValidLoss
@@ -322,7 +331,7 @@ def make_train_model(learning_rate, batch_size_for_train, drop_out):
                 writer.close()
 
 
-                return valid_accuracy
+    return valid_accuracy
 
 
 
@@ -350,8 +359,8 @@ data_valid_path = os.path.join(DATASETS_PATH, data_folder_list[6], "Data_valid_A
 bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path, 50)
 
 # Perform PSO to optimize the hyperparameters
-num_particles = 4
-max_iterations = 4
+num_particles = 6
+max_iterations = 2
 lb = [s[0] for s in search_space]
 ub = [s[1] for s in search_space]
 xopt, fopt = pso(objective_function, lb, ub, swarmsize=num_particles, maxiter=max_iterations)
