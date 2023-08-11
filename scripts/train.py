@@ -18,7 +18,6 @@ os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # Parameters
 main_data_path = r"D:\PPG2ABP\data_for_train"
 DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy"
-PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\sect_200\drop_0.08899\TransformerBlock\loss_MSELoss\lr_0.0001\batch_16\ConstantLR\epoch99.pth"
 #TODO: get list of data sets for train, like noisy_scale_100 and etc.
 data_folder_list = listdir(DATASETS_PATH)
 Batch_size = 4
@@ -29,8 +28,8 @@ input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
 #برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
-configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss()], "lr":[0.00001],
-           "optimizer":["adam", "adagrad"],"batch_size":[16], "drop_out":[0.08899],
+configs = {"models":[  UNetPPGtoABP()], "loss_func":[MSELoss()], "lr":[0.00005],
+           "optimizer":["adam", "adagrad"],"batch_size":[64], "drop_out":[0.05],
            "lr_scheduler":["ConstantLR", "StepR"]}
 
 if torch.cuda.is_available():
@@ -170,8 +169,8 @@ def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_n
         y_pred_valid = []
         with torch.no_grad():
             for batch_idx, (inputs, targets) in enumerate(data_loader_valid):
-                if inputs.shape[0] != batch_size or targets.shape[0] != batch_size:
-                    continue
+                # if inputs.shape[0] != batch_size or targets.shape[0] != batch_size:
+                #     continue
                 inputs, targets = inputs.to(device), targets.to(device)
                 random_index_for_mask = np.random.randint(0, 400)
                 inputs = targets
@@ -257,15 +256,15 @@ def parse_args():
     parser.add_argument('--learning_rate', type=float, default=0.001, help='Learning rate for optimizer')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for training')
     return parser.parse_args()
-def main():
+def main(TRAIN_MODE):
     counter = 0
     for i in data_folder_list:
-        i="sect_200"
+        i="train_final"
         data_train_path = os.path.join(DATASETS_PATH, i, "Data_Train_Annotation.csv")
         data_valid_path = os.path.join(DATASETS_PATH, i, "Data_valid_Annotation.csv")
         bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
         os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
-        start, end = 0, 100
+        start, end = 0, 200
         for drop in configs["drop_out"]:
             for model_type in configs["models"]:
                 model = model_type
@@ -289,7 +288,7 @@ def main():
                                 data_loader_valid = DataLoader(bp_data_valid, batch_size, shuffle=True)
                                 args = parse_args()
                                 checkpoint = Checkpoint()
-                                checkpoint_path = os.path.join("checkpoint", i, f"drop_{drop}", f"{str(model._get_name())}",
+                                checkpoint_path = os.path.join("checkpoint",TRAIN_MODE, i, f"drop_{drop}", f"{str(model._get_name())}",
                                                                f"loss_{loss_fn._get_name() }",f"lr_{lr_rate}",f"batch_{batch_size}",
                                                                scheduler_type)
                                 os.makedirs(checkpoint_path, exist_ok=True)
@@ -308,10 +307,10 @@ def main():
                                 valid_accuracy = []
                                 for epoch in range(start, end):
                                     TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
-                                                                     epoch,scheduler_fn= scheduler_lr, train_mode="ss")
+                                                                     epoch,scheduler_fn= scheduler_lr, train_mode=TRAIN_MODE)
                                     ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
                                                                      epoch, checkpoint, i,
-                                                                     checkpoint_path, train_mode= "ss")
+                                                                     checkpoint_path, train_mode= TRAIN_MODE)
                                     train_loss.append(TrainLoss)
                                     train_accuracy.append(TrainAccuracy)
                                     valid_loss.append(ValidLoss)
@@ -326,6 +325,7 @@ def main():
                                                                         "valid_loss": ValidLoss},
                                                        global_step=epoch)
                                 writer.close()
-
+PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\self-supervised\final-stage\unet\epoch20.pth"
+TRAIN_MODE = "s"
 if __name__ == "__main__":
-    main()
+    main(TRAIN_MODE)

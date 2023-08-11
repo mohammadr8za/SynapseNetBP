@@ -25,8 +25,8 @@ digits = load_digits()
 X_train, X_val, y_train, y_val = train_test_split(digits.data, digits.target, test_size=0.2)
 
 # Define the hyperparameter search space
-search_space = [(1e-5, 1e-1),  # learning rate
-                (4, 256),  # batch size
+search_space = [(1e-5, 0.001),  # learning rate
+                (4, 128),  # batch size
                 (.01, .1)]  # dropout
 
 
@@ -43,7 +43,7 @@ LEARNING_RATE = .0001
 input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
-configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
+configs = {"models":[  VNet()], "loss_func":[MSELoss(), L1Loss()], "lr":[.0001, .001],
            "optimizer":["adam", "adagrad"],"batch_size":[4, 16, 64, 128], "drop_out":[.1],
            "lr_scheduler":["Cosinanlealing", "ReduceLR", "StepR"]}
 
@@ -359,7 +359,7 @@ data_valid_path = os.path.join(DATASETS_PATH, data_folder_list[6], "Data_valid_A
 bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path, 50)
 
 # Perform PSO to optimize the hyperparameters
-num_particles = 6
+num_particles = 2
 max_iterations = 2
 lb = [s[0] for s in search_space]
 ub = [s[1] for s in search_space]

@@ -182,7 +182,7 @@ LABEL_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_clean"
 if __name__ == "__main__":
 
     for dataset in listdir(DATASETS_PATH):
-        NOISE_TYPE = "sect_200"
+        NOISE_TYPE = "train_final"
         DATA_PATH = os.path.join(ROOT_DATA_PATH, "ppg_noisy", NOISE_TYPE, "noisy_data")
         MakeMainAnnotation(DATA_PATH, LABEL_PATH,'main', NOISE_TYPE)
         MakeSubAnnotation("main", NOISE_TYPE)

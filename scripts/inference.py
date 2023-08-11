@@ -9,7 +9,7 @@ from models.unet import UNetPPGtoABP
 from models.vnet import VNet
 from models.transformernet import TransformerBlock
 from make_annotation import MakeMainAnnotation
-from snrloss import Snr
+from snr_metric import Snr
 from sklearn.metrics import mean_squared_error
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
@@ -47,9 +47,9 @@ else:
 bp_data_inference = BPDatasetRam(inference_data_annotation_path, device, num_data=50)
 bp_data_inference._load_data_to_RAM()
 data_loader_inference = DataLoader(bp_data_inference, Batch_size, shuffle=False)
-stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\final_optimized_net\transformer\lr_1e-05\batch_16\ConstantLR\epoch1.pth")
+stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\train_final\drop_0.05\UNetPPGtoABP\loss_MSELoss\lr_5e-05\batch_64\ConstantLR\epoch16.pth")
 # model = Transformer(input_shape)
-model = TransformerBlock()
+model = UNetPPGtoABP()
 model.load_state_dict(stat_dict['net'])
 model.eval()
 model.to(device)

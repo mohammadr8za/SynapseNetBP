@@ -10,6 +10,7 @@ else:
 
 
 def TxtLoad(path):
+
     data_array = np.loadtxt(path)
     return data_array
 
