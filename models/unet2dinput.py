@@ -3,9 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class UNetPPGtoABP(nn.Module):
+class UNet2DInput(nn.Module):
     def __init__(self, dropout=0.1):
-        super(UNetPPGtoABP, self).__init__()
+        super(UNet2DInput, self).__init__()
         self.dropout = dropout
 
         # Define the encoder
