@@ -34,7 +34,7 @@ alpha, beta = 1/2, 1/2
 ###################
 
 #برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
-configs = {"models":[  UNetPPGtoABP()], "loss_func":[MSELoss()], "lr":[0.0005],
+configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss()], "lr":[0.0005],
            "optimizer":["adam", "adagrad"],"batch_size":[32], "drop_out":[0.08],
            "lr_scheduler":["ConstantLR", "StepR"]}
 
@@ -406,7 +406,7 @@ def main(TRAIN_MODE):
                                                                         "valid_loss": ValidLoss},
                                                        global_step=epoch)
                                 writer.close()
-PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\self-supervised\final-stage\unet\epoch20.pth"
+PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\self-supervised\final-stage\transformer\epoch139.pth"
 PRETRAIN_MODEL2 = r"TODO"
 TRAIN_MODE = "s"
 if __name__ == "__main__":

@@ -83,6 +83,15 @@ def inference():
     for batch_idx, (inputs, targets) in enumerate(data_loader_inference):
         inputs, targets = inputs.to(device), targets.to(device)
         outputs = model(inputs.unsqueeze(1))
+
+        ###########
+        info = {"noisy signal": [], "reconstructed signal": []}
+        info["noisy signal"] = np.array(inputs[0].cpu())
+        info["reconstructed signal"] = np.array(outputs[0].detach().cpu())
+        info = pd.DataFrame(info)
+        pd.DataFrame.to_csv(info,
+                            r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\plots\unet_denoising.csv")
+
         y_true += targets.cpu().numpy().tolist()
         y_pred += outputs.cpu().detach().numpy().tolist()
         x += inputs.cpu().numpy().tolist()
