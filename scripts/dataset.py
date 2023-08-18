@@ -37,7 +37,7 @@ class BPDataset(Dataset):
         label = label.to(self.device)
         # print(signal.shape)
         # print(label.shape)
-        return signal.float()/10, label.float()/200
+        return signal.float(), label.float()/200
 
 
 
@@ -57,11 +57,14 @@ class BPDatasetRam(Dataset):
         self.data_annotations = pd.read_csv(data_annotations_file)
         self.data_dir = self.data_annotations["dir"]
         self.device = device
-        self.total_data = np.empty((512))
-        self.total_label = np.empty((512))
-        self.num_data = num_data
-
-
+        self.total_data = torch.empty((512))
+        self.total_label = torch.empty((512))
+        self.num_of_stack = 50
+        for i in range(self.num_of_stack):
+            globals()[f"self.data_part{i}"]  = torch.empty((512))
+            globals()[f"self.label_part{i}"] = torch.empty((512))
+            globals()[f"self.data_part{i}"] = globals()[f"self.data_part{i}"].to(self.device)
+            globals()[f"self.label_part{i}"] = globals()[f"self.data_part{i}"].to(self.device)
     def __len__(self):
         return len(self.data_annotations)
 
@@ -71,23 +74,29 @@ class BPDatasetRam(Dataset):
         signal = torch.tensor(signal)
         label = torch.tensor(label)
         #TODO: یونت و وی نت چون توان 2 بالا پایین میکنند اینجارو باید مضرب2 بذاریم
-        return  (signal.float()/10), (label.float()/10)
+        return  (signal.float()), (label.float()/200)
         # return  (signal.float()/200), (label.float()/10)
 
     def _load_data_to_RAM(self):
         for index in tqdm(range(len(self.data_annotations)), desc= "Loading all data to RAM", ncols=80):
+            part = int(np.floor(index / 10000) + 1)
+            try:
+                abp_signal_path = self._get_signal_path(index)
+                label_path = self._get_label_path(index)
+                signal = torch.tensor(txt_load.TxtLoad(abp_signal_path))
+                label = torch.tensor(txt_load.TxtLoad(label_path))
+                signal = signal.to(self.device)
+                label = label.to(self.device)
 
-            abp_signal_path = self._get_signal_path(index)
-            label_path = self._get_label_path(index)
-            signal = torch.tensor(txt_load.TxtLoad(abp_signal_path))
-            label = torch.tensor(txt_load.TxtLoad(label_path))
-            # signal = signal.to(self.device)
-            # label = label.to(self.device)
-            if signal.shape[0] == 512 and label.shape[0]== 512:
-                self.total_data = np.vstack((self.total_data, signal))
-                self.total_label = np.vstack((self.total_label, label))
-            # if index == self.num_data:
-            #     break
+                # if signal.shape[0] == 512 and label.shape[0]== 512:
+
+                globals()[f"self.data_part{part}"] = torch.vstack((globals()[f"self.data_part{part}"], signal))
+                globals()[f"self.label_part{part}"]  = torch.vstack((globals()[f"self.label_part{part}"], label))
+
+                # if index == self.num_data:
+                #     break
+            except FileNotFoundError:
+                print("one data not found")
         print("All data succesfully loaded in RAM, let's TRAIN")
 
 

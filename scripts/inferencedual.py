@@ -50,7 +50,7 @@ bp_data_inference._load_data_to_RAM()
 data_loader_inference = DataLoader(bp_data_inference, 1, shuffle=False)
 
 
-stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\dualnet\train_final\drop_0.08\UNetPPGtoABP\loss_MSELoss\lr_0.0005\batch_32\ConstantLR\epoch14.pth")
+stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\dualnet\train_final\drop_0.08\TransformerBlock\loss_MSELoss\lr_0.0005\batch_32\ConstantLR\epoch39.pth")
 
 # model = Transformer(input_shape)
 unet_model = UNet2DInput()
@@ -58,7 +58,7 @@ unet_model.load_state_dict(stat_dict['unet'])
 unet_model.eval()
 unet_model.to(device)
 
-trans_model = UNetPPGtoABP()
+trans_model = TransformerBlock()
 trans_model.load_state_dict(stat_dict['transformer'])
 trans_model.eval()
 trans_model.to(device)
@@ -100,7 +100,7 @@ def inference():
         info["reconstructed signal"] = np.array(outputs2[0].detach().cpu())
         info = pd.DataFrame(info)
         pd.DataFrame.to_csv(info,
-                            r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\plots\unet_unet_denoising.csv")
+                            r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\plots\trans_unet_denoising_clean.csv")
 
 
 

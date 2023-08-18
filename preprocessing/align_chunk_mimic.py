@@ -47,7 +47,7 @@ for sig in range(len(part)):
         # plt.plot(np.arange(0, ppg_chunk.shape[0]), ppg_chunk)
         # plt.savefig(os.path.join(ppg_save_dir, 'fig', chunk_name) + '.png')
         # plt.close()
-        # np.savetxt(os.path.join(ppg_save_dir, 'txt', chunk_name) + '.txt', ppg_chunk, fmt='%f')
+        np.savetxt(os.path.join(ppg_save_dir, 'txt', chunk_name) + '.txt', ppg_chunk, fmt='%f')
 
         abp_chunk = abp_sig[num * chunk_in_sample: (num + 1) * chunk_in_sample]
         # plt.figure()

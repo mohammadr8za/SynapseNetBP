@@ -1,9 +1,13 @@
 import os
 import torch
-from dataset import BPDatasetRam
+from dataset import BPDatasetRam, BPDataset
 from torch.utils.data import DataLoader
 from sklearn.metrics import r2_score
 from models.unet import UNetPPGtoABP
+from models.unet2 import UNetPPGtoABP2
+from models.unet3 import UNetPPGtoABP3
+
+
 from models.transformernet import TransformerBlock
 from models.vnet import VNet
 import matplotlib.pyplot as plt
@@ -16,8 +20,8 @@ import numpy as np
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # Parameters
-main_data_path = r"D:\PPG2ABP\data_for_train"
-DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy"
+main_data_path = r"C:\data\data_for_train"
+DATASETS_PATH = r"C:\data\data_for_training_split_shuffle\ppg_denoised"
 #TODO: get list of data sets for train, like noisy_scale_100 and etc.
 data_folder_list = listdir(DATASETS_PATH)
 Batch_size = 4
@@ -28,8 +32,8 @@ input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
 #برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
-configs = {"models":[  UNetPPGtoABP()], "loss_func":[MSELoss()], "lr":[0.00005],
-           "optimizer":["adam", "adagrad"],"batch_size":[64], "drop_out":[0.05],
+configs = {"models":[  UNetPPGtoABP3()], "loss_func":[MSELoss()], "lr":[0.0001],
+           "optimizer":["adam", "adagrad"],"batch_size":[128], "drop_out":[0.08],
            "lr_scheduler":["ConstantLR", "StepR"]}
 
 if torch.cuda.is_available():
@@ -42,11 +46,13 @@ else:
 
 def load_data(train_data_annotation_path ,valid_data_annotation_path ):
 
-    bp_data_train = BPDatasetRam(train_data_annotation_path, device, num_data=50)
-    bp_data_train._load_data_to_RAM()
+    bp_data_train = BPDataset(train_data_annotation_path, device)
+    # bp_data_train = BPDatasetRam(train_data_annotation_path, device, num_data=50)
+    # bp_data_train._load_data_to_RAM()
 
-    bp_data_valid = BPDatasetRam(valid_data_annotation_path, device, num_data=50)
-    bp_data_valid._load_data_to_RAM()
+    bp_data_valid = BPDataset(valid_data_annotation_path, device)
+    # bp_data_valid = BPDatasetRam(valid_data_annotation_path, device, num_data=50)
+    # bp_data_valid._load_data_to_RAM()
 
     return bp_data_train, bp_data_valid
 
@@ -156,9 +162,9 @@ def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_n
         r2 = r2_score(y_true, y_pred)
         print(f"VALID R2 : {r2} ")
 
-        checkpoint.save(model=model, acc=r2, filename=f"BPmodel",loss=loss_total.avg.item(),
-                        loss_type=loss_fn, batch_size=Batch_size,
-                        optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch,data_name= data_name, check_dir=check_dir)
+        # checkpoint.save(model=model, acc=r2, filename=f"BPmodel",loss=loss_total.avg.item(),
+        #                 loss_type=loss_fn, batch_size=Batch_size,
+        #                 optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch,data_name= data_name, check_dir=check_dir)
 
         return loss_total.avg.item(), r2
     elif train_mode == "ss":
@@ -259,7 +265,7 @@ def parse_args():
 def main(TRAIN_MODE):
     counter = 0
     for i in data_folder_list:
-        i="train_final"
+        i="final_denoised_ppg"
         data_train_path = os.path.join(DATASETS_PATH, i, "Data_Train_Annotation.csv")
         data_valid_path = os.path.join(DATASETS_PATH, i, "Data_valid_Annotation.csv")
         bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
@@ -268,13 +274,14 @@ def main(TRAIN_MODE):
         for drop in configs["drop_out"]:
             for model_type in configs["models"]:
                 model = model_type
-                stat_dict = torch.load(PRETRAIN_MODEL)
-                model.load_state_dict(stat_dict["net"])
+                # stat_dict = torch.load(PRETRAIN_MODEL)
+                # model.load_state_dict(stat_dict["net"])
                 model.to(device)
                 for loss_func in configs["loss_func"]:
                     loss_fn = loss_func
                     for lr_rate in configs["lr"]:
                         optimiser = torch.optim.Adam(model.parameters(), lr=lr_rate)
+                        # optimiser = torch.optim.SGD(model.parameters(), lr=lr_rate)
                         for scheduler_type in configs["lr_scheduler"]:
                             if scheduler_type == "StepR":
                                 scheduler_lr = StepLR(optimiser, step_size=25, gamma=0.5)
@@ -307,7 +314,7 @@ def main(TRAIN_MODE):
                                 valid_accuracy = []
                                 for epoch in range(start, end):
                                     TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
-                                                                     epoch,scheduler_fn= scheduler_lr, train_mode=TRAIN_MODE)
+                                                                     epoch,scheduler_fn=scheduler_lr, train_mode=TRAIN_MODE)
                                     ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
                                                                      epoch, checkpoint, i,
                                                                      checkpoint_path, train_mode= TRAIN_MODE)
@@ -325,7 +332,7 @@ def main(TRAIN_MODE):
                                                                         "valid_loss": ValidLoss},
                                                        global_step=epoch)
                                 writer.close()
-PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\self-supervised\final-stage\unet\epoch20.pth"
+PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\self-supervised\final-stage\transformer\epoch139.pth"
 TRAIN_MODE = "s"
 if __name__ == "__main__":
     main(TRAIN_MODE)

@@ -10,9 +10,11 @@ else:
 
 
 def TxtLoad(path):
-
+  try:
     data_array = np.loadtxt(path)
     return data_array
+  except FileNotFoundError:
+      print("file not found")
 
 
 # data_path = r'D:\data\PPGBP\mimic\abp\1-0-0.txt'
