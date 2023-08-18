@@ -30,7 +30,35 @@ class UNetPPGtoABP3(nn.Module):
         self.conv10 = nn.Conv1d(self.net_size * 64, 1, kernel_size=1, stride=1)
         self.dropout = nn.Dropout(p=dropout)
 
-    def forward(self, x):
+    # def forward(self, x):
+    #     # Encoder part of the network
+    #     x1 = F.relu(self.conv1(x))
+    #     x2 = F.relu(self.conv2(F.max_pool1d(x1, kernel_size=2, stride=2)))
+    #     x3 = F.relu(self.conv3(F.max_pool1d(x2, kernel_size=2, stride=2)))
+    #     x4 = F.relu(self.conv4(F.max_pool1d(x3, kernel_size=2, stride=2)))
+    #     x5 = F.relu(self.conv5(F.max_pool1d(x4, kernel_size=2, stride=2)))
+    #     x6 = F.relu(self.conv6_e(F.max_pool1d(x5, kernel_size=2, stride=2)))
+    #     x6 = self.dropout(x6)
+    #
+    #     # Decoder part of the network
+    #     x = F.relu(self.upconv1_d(x6))
+    #     x = torch.cat([x, x5], dim=1)
+    #     x = F.relu(self.conv6_d(x))
+    #     x = F.relu(self.upconv1(x5))
+    #     x = torch.cat([x, x4], dim=1)
+    #     x = F.relu(self.conv6(x))
+    #     x = F.relu(self.upconv2(x))
+    #     x = torch.cat([x, x3], dim=1)
+    #     x = F.relu(self.conv7(x))
+    #     x = F.relu(self.upconv3(x))
+    #     x = torch.cat([x, x2], dim=1)
+    #     x = F.relu(self.conv8(x))
+    #     x = F.relu(self.upconv4(x))
+    #     x = torch.cat([x, x1], dim=1)
+    #     x = F.relu(self.conv9(x))
+    #     x = self.conv10(x)
+
+    def forward(self, x, targets=None, teacher_forcing_ratio=0.5):
         # Encoder part of the network
         x1 = F.relu(self.conv1(x))
         x2 = F.relu(self.conv2(F.max_pool1d(x1, kernel_size=2, stride=2)))
@@ -57,6 +85,13 @@ class UNetPPGtoABP3(nn.Module):
         x = torch.cat([x, x1], dim=1)
         x = F.relu(self.conv9(x))
         x = self.conv10(x)
+
+        if targets is not None and self.training:
+            # Apply teacher forcing
+            use_teacher_forcing = torch.rand(1) < teacher_forcing_ratio
+            if use_teacher_forcing:
+                x = targets
+
 
         return x.squeeze(1)
         # return x6
