@@ -17,6 +17,7 @@ from torch.nn import MSELoss, L1Loss
 from os import listdir
 from torch.optim.lr_scheduler import  StepLR, CosineAnnealingLR, ConstantLR
 import numpy as np
+from torch.cuda.amp import autocast, GradScaler
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # Parameters
@@ -32,7 +33,7 @@ input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
 #برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
-configs = {"models":[  UNetPPGtoABP3()], "loss_func":[MSELoss()], "lr":[0.0001],
+configs = {"models":[  UNetPPGtoABP3()], "loss_func":[L1Loss()], "lr":[0.01],
            "optimizer":["adam", "adagrad"],"batch_size":[128], "drop_out":[0.08],
            "lr_scheduler":["ConstantLR", "StepR"]}
 
@@ -81,7 +82,7 @@ class AverageMeter(object):
         self.sum += val * n
         self.count += n
         self.avg = self.sum / self.count
-def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler_fn, train_mode):
+def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler_fn, train_mode,gscaler):
 
 
     if train_mode == "s":
@@ -92,16 +93,26 @@ def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler_fn, trai
         y_pred = []
 
         for batch_idx, (inputs, targets) in enumerate(data_loader_train):
+            torch.autograd.set_detect_anomaly(True)
             inputs, targets = inputs.to(device), targets.to(device)
+            # inputs, targets = inputs.to(device).half(), targets.to(device).half()
+            #forward pass
+            with autocast():
+                outputs = model(inputs.unsqueeze(1))
+                loss = loss_fn(outputs, targets)
+            #backward pass
             optimiser.zero_grad()
-            outputs = model(inputs.unsqueeze(1))
-            loss = loss_fn(outputs, targets)
-            loss.backward()
-            optimiser.step()
+            gscaler.scale(loss).backward()
+            # loss.backward()
+            gscaler.step(optimiser)
+            gscaler.update()
+            # max_norm = 1
+            # torch.nn.utils.clip_grad_norm(model.parameters(), max_norm)
+            # optimiser.step()
             loss_total.update(loss)
             y_true += targets.cpu().numpy().tolist()
             y_pred += outputs.cpu().detach().numpy().tolist()
-            scheduler_fn.step()
+            # scheduler_fn.step()
             # print('batch \ totoal_data:',f'{(batch_idx/(len(data_loader_train))):.2}', f'loss: {loss_total.avg.item()}')
             # print(f"R2 : {r2_score(y_true, y_pred)} ")
             # if batch_idx == 100:
@@ -152,6 +163,7 @@ def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_n
         with torch.no_grad():
             for batch_idx, (inputs, targets) in enumerate(data_loader_valid):
                 inputs, targets = inputs.to(device), targets.to(device)
+                # inputs, targets = inputs.to(device).half(), targets.to(device).half()
                 outputs = model(inputs.unsqueeze(1))
                 loss = loss_fn(outputs, targets)
                 loss_total.update(loss)
@@ -277,6 +289,8 @@ def main(TRAIN_MODE):
                 # stat_dict = torch.load(PRETRAIN_MODEL)
                 # model.load_state_dict(stat_dict["net"])
                 model.to(device)
+                model
+                # model.half()
                 for loss_func in configs["loss_func"]:
                     loss_fn = loss_func
                     for lr_rate in configs["lr"]:
@@ -312,9 +326,10 @@ def main(TRAIN_MODE):
                                 valid_loss = []
                                 train_accuracy = []
                                 valid_accuracy = []
+                                scaler = GradScaler()
                                 for epoch in range(start, end):
                                     TrainLoss, TrainAccuracy = train(model, loss_fn, optimiser, data_loader_train,
-                                                                     epoch,scheduler_fn=scheduler_lr, train_mode=TRAIN_MODE)
+                                                                     epoch,scheduler_fn=scheduler_lr, train_mode=TRAIN_MODE, gscaler= scaler)
                                     ValidLoss, ValidAccuracy = valid(model, loss_fn, data_loader_valid, optimiser,
                                                                      epoch, checkpoint, i,
                                                                      checkpoint_path, train_mode= TRAIN_MODE)

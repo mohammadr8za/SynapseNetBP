@@ -7,7 +7,7 @@ class UNetPPGtoABP3(nn.Module):
     def __init__(self, dropout=0.1):
         super(UNetPPGtoABP3, self).__init__()
         self.dropout = dropout
-        self.net_size  = 2
+        self.net_size  = 3
         # Define the encoder
         self.conv1 = nn.Conv1d(1, self.net_size * 64, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv1d(self.net_size * 64,self.net_size *  128, kernel_size=3, stride=1, padding=1)
