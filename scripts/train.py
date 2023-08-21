@@ -22,7 +22,7 @@ from torch.cuda.amp import autocast, GradScaler
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # Parameters
 main_data_path = r"C:\data\data_for_train"
-DATASETS_PATH = r"C:\data\data_for_training_split_shuffle\ppg_denoised"
+DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\very_clean_data_for_train\ppg_denoised"
 #TODO: get list of data sets for train, like noisy_scale_100 and etc.
 data_folder_list = listdir(DATASETS_PATH)
 Batch_size = 4
@@ -33,8 +33,8 @@ input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
 #برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
-configs = {"models":[  UNetPPGtoABP3()], "loss_func":[L1Loss()], "lr":[0.01],
-           "optimizer":["adam", "adagrad"],"batch_size":[128], "drop_out":[0.08],
+configs = {"models":[  UNetPPGtoABP3()], "loss_func":[MSELoss()], "lr":[0.0001],
+           "optimizer":["adam", "adagrad"],"batch_size":[32], "drop_out":[0.075],
            "lr_scheduler":["ConstantLR", "StepR"]}
 
 if torch.cuda.is_available():
@@ -98,7 +98,8 @@ def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler_fn, trai
             # inputs, targets = inputs.to(device).half(), targets.to(device).half()
             #forward pass
             with autocast():
-                outputs = model(inputs.unsqueeze(1))
+                # outputs = model(inputs.unsqueeze(1))
+                outputs = model.forward(inputs.unsqueeze(1), targets)
                 loss = loss_fn(outputs, targets)
             #backward pass
             optimiser.zero_grad()
@@ -174,9 +175,9 @@ def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_n
         r2 = r2_score(y_true, y_pred)
         print(f"VALID R2 : {r2} ")
 
-        # checkpoint.save(model=model, acc=r2, filename=f"BPmodel",loss=loss_total.avg.item(),
-        #                 loss_type=loss_fn, batch_size=Batch_size,
-        #                 optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch,data_name= data_name, check_dir=check_dir)
+        checkpoint.save(model=model, acc=r2, filename=f"BPmodel",loss=loss_total.avg.item(),
+                        loss_type=loss_fn, batch_size=Batch_size,
+                        optimizer=optimiser, lr_value=LEARNING_RATE, epoch=epoch,data_name= data_name, check_dir=check_dir)
 
         return loss_total.avg.item(), r2
     elif train_mode == "ss":
@@ -221,7 +222,7 @@ class Checkpoint(object):
 
     def save(self, model, acc, loss, lr_value, batch_size, loss_type, optimizer, filename, epoch, data_name, check_dir):
             # os.makedirs(os.path.join(self.folder, data_name))
-        # if acc > self.best_acc:
+        if acc > self.best_acc:
             print('Saving checkpoint...')
 
 
@@ -282,12 +283,12 @@ def main(TRAIN_MODE):
         data_valid_path = os.path.join(DATASETS_PATH, i, "Data_valid_Annotation.csv")
         bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
         os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
-        start, end = 0, 200
+        start, end = 61, 200
         for drop in configs["drop_out"]:
             for model_type in configs["models"]:
                 model = model_type
-                # stat_dict = torch.load(PRETRAIN_MODEL)
-                # model.load_state_dict(stat_dict["net"])
+                stat_dict = torch.load(PRETRAIN_MODEL)
+                model.load_state_dict(stat_dict["net"])
                 model.to(device)
                 model
                 # model.half()
@@ -347,7 +348,7 @@ def main(TRAIN_MODE):
                                                                         "valid_loss": ValidLoss},
                                                        global_step=epoch)
                                 writer.close()
-PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\self-supervised\final-stage\transformer\epoch139.pth"
+PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\final_denoised_ppg\drop_0.075\UNetPPGtoABP3\loss_MSELoss\lr_0.0001\batch_32\ConstantLR\epoch60.pth"
 TRAIN_MODE = "s"
 if __name__ == "__main__":
     main(TRAIN_MODE)

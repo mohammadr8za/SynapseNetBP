@@ -37,7 +37,7 @@ class BPDataset(Dataset):
         label = label.to(self.device)
         # print(signal.shape)
         # print(label.shape)
-        return signal.float()*10, label.float()
+        return signal.float(), label.float()/20
 
 
 
@@ -74,7 +74,7 @@ class BPDatasetRam(Dataset):
         signal = torch.tensor(signal)
         label = torch.tensor(label)
         #TODO: یونت و وی نت چون توان 2 بالا پایین میکنند اینجارو باید مضرب2 بذاریم
-        return  (signal.float())*10, (label.float())
+        return  (signal.float()), (label.float())/20
         # return  (signal.float()/200), (label.float()/10)
 
     def _load_data_to_RAM(self):

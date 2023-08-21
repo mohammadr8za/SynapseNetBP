@@ -3,9 +3,10 @@ import pandas as pd
 # from sklearn.metrics import r2_score
 import numpy as np
 import torch
-from dataset import BPDatasetRam
+from dataset import BPDatasetRam, BPDataset
 from torch.utils.data import DataLoader
 from models.unet import UNetPPGtoABP
+from models.unet3 import UNetPPGtoABP3
 from models.vnet import VNet
 from models.transformernet import TransformerBlock
 from make_annotation import MakeMainAnnotation
@@ -44,12 +45,12 @@ else:
 # MakeMainAnnotation(inference_data_path, mode="inference")
 
 # Load data and create a data loader
-bp_data_inference = BPDatasetRam(inference_data_annotation_path, device, num_data=50)
-bp_data_inference._load_data_to_RAM()
+bp_data_inference = BPDataset(inference_data_annotation_path, device)
+# bp_data_inference._load_data_to_RAM()
 data_loader_inference = DataLoader(bp_data_inference, Batch_size, shuffle=False)
-stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\train_final\drop_0.05\UNetPPGtoABP\loss_MSELoss\lr_5e-05\batch_64\ConstantLR\epoch16.pth")
+stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\final_denoised_ppg\drop_0.075\UNetPPGtoABP3\loss_MSELoss\lr_0.0001\batch_32\ConstantLR\epoch84.pth")
 # model = Transformer(input_shape)
-model = UNetPPGtoABP()
+model = UNetPPGtoABP3()
 model.load_state_dict(stat_dict['net'])
 model.eval()
 model.to(device)

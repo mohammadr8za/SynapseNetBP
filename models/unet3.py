@@ -7,7 +7,7 @@ class UNetPPGtoABP3(nn.Module):
     def __init__(self, dropout=0.1):
         super(UNetPPGtoABP3, self).__init__()
         self.dropout = dropout
-        self.net_size  = 3
+        self.net_size  = 2
         # Define the encoder
         self.conv1 = nn.Conv1d(1, self.net_size * 64, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv1d(self.net_size * 64,self.net_size *  128, kernel_size=3, stride=1, padding=1)
@@ -86,14 +86,15 @@ class UNetPPGtoABP3(nn.Module):
         x = F.relu(self.conv9(x))
         x = self.conv10(x)
 
-        if targets is not None and self.training:
+        if targets is not None and False:
             # Apply teacher forcing
             use_teacher_forcing = torch.rand(1) < teacher_forcing_ratio
             if use_teacher_forcing:
                 x = targets
 
 
-        return x.squeeze(1)
+
+        return x.squeeze(1).requires_grad_(True)
         # return x6
 
 if __name__ == "__main__":

@@ -143,7 +143,7 @@ def MakeMainAnnotationNoisy(path,mode):
 def  MakeMainAnnotationABP(data_path, label_path, mode, noise_type):
 
     if mode == "main":
-        path = r"C:\data\data_for_training_split_shuffle"
+        path = r"D:\PPG2ABP\data_for_training_split_shuffle\very_clean_data_for_train"
         abp_files = listdir(data_path)
         ppg_files = listdir(label_path)
         signals_info = {"dir": [], "signal_fold": [], "signal_name": [], "label_fold":[],"lalbel_name":[]}
@@ -212,11 +212,11 @@ def Make_Train_Valid_Annotation_directly_refinment(path):
         valid_signals_info = pd.DataFrame(valid_signals_info)
         pd.DataFrame.to_csv(valid_signals_info, join(path, "VALID", "Data_valid_Annotation.csv"))
 
-ROOT_DATA_PATH = r"C:\data\data_for_training_split_shuffle"
-DATASETS_PATH = r"C:\data\data_for_training_split_shuffle\ppg_denoised"
+ROOT_DATA_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\very_clean_data_for_train"
+DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\very_clean_data_for_train\ppg_denoised"
 train_path = r"D:\PPG2ABP\data_for_train\train_data_100sample_loss"
 LABEL_PATH = r"C:\data\data_for_training_split_shuffle\ppg_clean"
-ABP_PATH = r"C:\data\data_for_training_split_shuffle\final_abp"
+ABP_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\very_clean_data_for_train\final_abp"
 if __name__ == "__main__":
 
     for dataset in listdir(DATASETS_PATH):

@@ -1,10 +1,11 @@
 import os
 import torch
-from dataset import BPDatasetRam
+from dataset import BPDatasetRam,BPDataset
 from torch.utils.data import DataLoader
 from sklearn.metrics import r2_score
 from models.unet import UNetPPGtoABP
 from models.unet2dinput import UNet2DInput
+from models.unet3 import UNetPPGtoABP3
 from models.transformernet import TransformerBlock
 from models.vnet import VNet
 import matplotlib.pyplot as plt
@@ -17,8 +18,8 @@ import numpy as np
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # Parameters
-main_data_path = r"D:\PPG2ABP\data_for_train"
-DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\ppg_denoised"
+main_data_path = r"C:\data\data_for_train"
+DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\very_clean_data_for_train\ppg_denoised"
 #TODO: get list of data sets for train, like noisy_scale_100 and etc.
 data_folder_list = listdir(DATASETS_PATH)
 Batch_size = 4
@@ -34,8 +35,8 @@ alpha, beta = 1/2, 1/2
 ###################
 
 #برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
-configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss()], "lr":[0.0002],
-           "optimizer":["adam", "adagrad"],"batch_size":[32], "drop_out":[0.08],
+configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss()], "lr":[0.00012],
+           "optimizer":["adam", "adagrad"],"batch_size":[32], "drop_out":[0.085],
            "lr_scheduler":["ConstantLR", "StepR"]}
 
 if torch.cuda.is_available():
@@ -48,11 +49,13 @@ else:
 
 def load_data(train_data_annotation_path ,valid_data_annotation_path ):
 
-    bp_data_train = BPDatasetRam(train_data_annotation_path, device, num_data=50)
-    bp_data_train._load_data_to_RAM()
+    bp_data_train = BPDataset(train_data_annotation_path, device)
+    # bp_data_train = BPDatasetRam(train_data_annotation_path, device, num_data=50)
+    # bp_data_train._load_data_to_RAM()
 
-    bp_data_valid = BPDatasetRam(valid_data_annotation_path, device, num_data=50)
-    bp_data_valid._load_data_to_RAM()
+    bp_data_valid = BPDataset(valid_data_annotation_path, device)
+    # bp_data_valid = BPDatasetRam(valid_data_annotation_path, device, num_data=50)
+    # bp_data_valid._load_data_to_RAM()
 
     return bp_data_train, bp_data_valid
 
@@ -93,7 +96,7 @@ def train(model1, model2, loss_fn, optimiser, data_loader_train,epoch, scheduler
         loss_total_trans = AverageMeter()
         y_true = []
         y_pred = []
-
+        k = 0
         for batch_idx, (inputs, targets) in enumerate(data_loader_train):
             inputs, targets = inputs.to(device), targets.to(device)
             optimiser.zero_grad()
@@ -102,8 +105,8 @@ def train(model1, model2, loss_fn, optimiser, data_loader_train,epoch, scheduler
             outputs2 = model2(inputs2)
 
             #TODO:
-            lossT = loss_fn(outputs1, targets)
-            lossU = loss_fn(outputs2, targets)
+            lossT = loss_fn(outputs1.squeeze(), targets)
+            lossU = loss_fn(outputs2.squeeze(), targets)
 
             loss = alpha * lossT + beta * lossU
             loss.backward()
@@ -113,8 +116,15 @@ def train(model1, model2, loss_fn, optimiser, data_loader_train,epoch, scheduler
             loss_total_trans.update(lossT)
             loss_total.update(loss)
             y_true += targets.cpu().numpy().tolist()
-            y_pred += outputs2.cpu().detach().numpy().tolist()
+            y_pred += outputs2.squeeze().cpu().detach().numpy().tolist()
             scheduler_fn.step()
+            print(f"loss:{loss_total.avg.item()} ")
+            print(f"batch of epoch{(1 - k/60)}")
+            k += 1
+            try:
+                print(f"r2:{r2_score(y_true, y_pred)}")
+            except RuntimeWarning:
+                print("Ok")
             # print('batch \ totoal_data:',f'{(batch_idx/(len(data_loader_train))):.2}', f'loss: {loss_total.avg.item()}')
             # print(f"R2 : {r2_score(y_true, y_pred)} ")
             # if batch_idx == 100:
@@ -234,7 +244,7 @@ class Checkpoint(object):
 
     def save(self, model1, model2, acc, loss, lr_value, batch_size, loss_type, optimizer, filename, epoch, data_name, check_dir):
             # os.makedirs(os.path.join(self.folder, data_name))
-        # if acc > self.best_acc:
+        if acc > self.best_acc:
             print('Saving checkpoint...')
 
 
@@ -320,16 +330,16 @@ def main(TRAIN_MODE):
         data_valid_path = os.path.join(DATASETS_PATH, i, "Data_valid_Annotation.csv")
         bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
         os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
-        start, end = 0, 200
+        start, end = 39, 200
         for drop in configs["drop_out"]:
             for model_type in configs["models"]:
                 model = model_type
                 stat_dict = torch.load(PRETRAIN_MODEL)
-                model.load_state_dict(stat_dict["net"])
+                model.load_state_dict(stat_dict["transformer"])
                 model.to(device)
                 model2 = UNet2DInput()
-                # stat_dict2 = torch.load(PRETRAIN_MODEL2)
-                # model2.load_state_dict2(stat_dict["net"])
+                stat_dict2 = torch.load(PRETRAIN_MODEL)
+                model2.load_state_dict(stat_dict2["unet"])
                 model2.to(device)
                 for loss_func in configs["loss_func"]:
                     loss_fn = loss_func
@@ -406,7 +416,7 @@ def main(TRAIN_MODE):
                                                                         "valid_loss": ValidLoss},
                                                        global_step=epoch)
                                 writer.close()
-PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\self-supervised\final-stage\transformer\epoch139.pth"
+PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\dualnet\final_denoised_ppg\drop_0.085\TransformerBlock\loss_MSELoss\lr_0.00012\batch_32\ConstantLR\epoch38.pth"
 PRETRAIN_MODEL2 = r"TODO"
 TRAIN_MODE = "s"
 if __name__ == "__main__":

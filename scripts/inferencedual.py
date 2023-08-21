@@ -3,12 +3,13 @@ import pandas as pd
 # from sklearn.metrics import r2_score
 import numpy as np
 import torch
-from dataset import BPDatasetRam
+from dataset import BPDatasetRam, BPDataset
 from torch.utils.data import DataLoader
 from models.unet import UNetPPGtoABP
 from models.unet2dinput import UNet2DInput
 from models.vnet import VNet
 from models.transformernet import TransformerBlock
+from models.unet3 import UNetPPGtoABP3
 from make_annotation import MakeMainAnnotation
 from snr_metric import Snr
 from sklearn.metrics import mean_squared_error
@@ -22,7 +23,7 @@ from os.path import join
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 #TODO: chnage this dir to the correct dir of test txt files
 inference_data_path = r"D:\PPG2ABP\data_for_test"
-inference_data_annotation_path = r"D:\PPG2ABP\data_for_test/inference.csv"
+inference_data_annotation_path = r"D:\PPG2ABP\data_for_test\inference.csv"
 
 Batch_size = 1
 fs = 125
@@ -45,12 +46,12 @@ else:
 # MakeMainAnnotation(inference_data_path, mode="inference")
 
 # Load data and create a data loader
-bp_data_inference = BPDatasetRam(inference_data_annotation_path, device, num_data=50)
-bp_data_inference._load_data_to_RAM()
-data_loader_inference = DataLoader(bp_data_inference, 1, shuffle=False)
+bp_data_inference = BPDataset(inference_data_annotation_path, device)
+# bp_data_inference._load_data_to_RAM()
+data_loader_inference = DataLoader(bp_data_inference, 2, shuffle=False)
 
 
-stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\dualnet\train_final\drop_0.08\TransformerBlock\loss_MSELoss\lr_0.0005\batch_32\ConstantLR\epoch39.pth")
+stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\dualnet\final_denoised_ppg\drop_0.085\TransformerBlock\loss_MSELoss\lr_0.00012\batch_32\ConstantLR\epoch174.pth")
 
 # model = Transformer(input_shape)
 unet_model = UNet2DInput()
@@ -89,10 +90,14 @@ def inference():
 
     # time.sleep(5)
     i = 0
+    trans_model.eval()
+    unet_model.eval()
     for batch_idx, (inputs, targets) in enumerate(data_loader_inference):
         inputs, targets = inputs.to(device), targets.to(device)
+
         outputs1 = trans_model(inputs.unsqueeze(1))
         inputs2 = torch.permute(torch.hstack((inputs.unsqueeze(1), outputs1.detach().unsqueeze(1))), (0, 1, 2))
+
         outputs2 = unet_model(inputs2)
         ############################################
         info = {"noisy signal": [], "reconstructed signal": []}
