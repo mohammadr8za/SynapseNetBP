@@ -3,7 +3,7 @@ import torch.nn as nn
 
 
 class DenoisingNetwork(nn.Module):
-    def __init__(self, input_dim, hidden_dim, num_heads, num_layers, dropout):
+    def __init__(self, input_dim=512, hidden_dim=512, num_heads=8, num_layers=8, dropout=.1):
         super(DenoisingNetwork, self).__init__()
 
         self.embedding = nn.Linear(input_dim, hidden_dim)

@@ -6,7 +6,7 @@ from sklearn.metrics import r2_score
 from models.unet import UNetPPGtoABP
 from models.unet2 import UNetPPGtoABP2
 from models.unet3 import UNetPPGtoABP3
-
+from models.transfromscratch import DenoisingNetwork
 
 from models.transformernet import TransformerBlock
 from models.vnet import VNet
@@ -22,7 +22,7 @@ from torch.cuda.amp import autocast, GradScaler
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # Parameters
 main_data_path = r"C:\data\data_for_train"
-DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\very_clean_data_for_train\ppg_denoised"
+DATASETS_PATH = r"C:\data\data_for_training_split_shuffle\ppg_noisy"
 #TODO: get list of data sets for train, like noisy_scale_100 and etc.
 data_folder_list = listdir(DATASETS_PATH)
 Batch_size = 4
@@ -33,8 +33,8 @@ input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
 #برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
-configs = {"models":[  UNetPPGtoABP3()], "loss_func":[MSELoss()], "lr":[0.0001],
-           "optimizer":["adam", "adagrad"],"batch_size":[32], "drop_out":[0.075],
+configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss()], "lr":[0.0001],
+           "optimizer":["adam", "adagrad"],"batch_size":[1], "drop_out":[0.075],
            "lr_scheduler":["ConstantLR", "StepR"]}
 
 if torch.cuda.is_available():
@@ -56,10 +56,6 @@ def load_data(train_data_annotation_path ,valid_data_annotation_path ):
     # bp_data_valid._load_data_to_RAM()
 
     return bp_data_train, bp_data_valid
-
-
-
-
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -98,8 +94,8 @@ def train(model, loss_fn, optimiser, data_loader_train,epoch, scheduler_fn, trai
             # inputs, targets = inputs.to(device).half(), targets.to(device).half()
             #forward pass
             with autocast():
-                # outputs = model(inputs.unsqueeze(1))
-                outputs = model.forward(inputs.unsqueeze(1), targets)
+                outputs = model(inputs.unsqueeze(1))
+                # outputs = model.forward(inputs.unsqueeze(1), targets)
                 loss = loss_fn(outputs, targets)
             #backward pass
             optimiser.zero_grad()
@@ -210,7 +206,6 @@ def valid(model, loss_fn, data_loader_valid, optimiser,epoch, checkpoint, data_n
 
         return loss_total.avg.item(), r2
 
-
 class Checkpoint(object):
     def __init__(self):
 
@@ -241,7 +236,6 @@ class Checkpoint(object):
             torch.save(state, path)
             self.best_acc = acc
 
-
 def result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, data_name, check_dir):
     plt.figure(figsize=(15, 15))
     plt.plot(train_accuracy)
@@ -265,8 +259,6 @@ def result(train_loss, valid_loss, train_accuracy, valid_accuracy, epoch, data_n
     # plt.savefig(fr"./chekpoint/BPModel_Loss.png")
     plt.close()
 
-
-
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a deep model')
     parser.add_argument('--data_dir', type=str, default='data', help='Path to training data directory')
@@ -278,19 +270,19 @@ def parse_args():
 def main(TRAIN_MODE):
     counter = 0
     for i in data_folder_list:
-        i="final_denoised_ppg"
+        i="train_final"
         data_train_path = os.path.join(DATASETS_PATH, i, "Data_Train_Annotation.csv")
         data_valid_path = os.path.join(DATASETS_PATH, i, "Data_valid_Annotation.csv")
         bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
         os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
-        start, end = 61, 200
+        start, end = 0, 200
         for drop in configs["drop_out"]:
             for model_type in configs["models"]:
                 model = model_type
-                stat_dict = torch.load(PRETRAIN_MODEL)
-                model.load_state_dict(stat_dict["net"])
+                # stat_dict = torch.load(PRETRAIN_MODEL)
+                # model.load_state_dict(stat_dict["net"])
                 model.to(device)
-                model
+
                 # model.half()
                 for loss_func in configs["loss_func"]:
                     loss_fn = loss_func

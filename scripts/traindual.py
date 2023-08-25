@@ -19,7 +19,7 @@ import numpy as np
 os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
 # Parameters
 main_data_path = r"C:\data\data_for_train"
-DATASETS_PATH = r"D:\PPG2ABP\data_for_training_split_shuffle\very_clean_data_for_train\ppg_denoised"
+DATASETS_PATH = r"C:\data\data_for_training_split_shuffle\ppg_noisy"
 #TODO: get list of data sets for train, like noisy_scale_100 and etc.
 data_folder_list = listdir(DATASETS_PATH)
 Batch_size = 4
@@ -35,8 +35,8 @@ alpha, beta = 1/2, 1/2
 ###################
 
 #برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
-configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss()], "lr":[0.00012],
-           "optimizer":["adam", "adagrad"],"batch_size":[32], "drop_out":[0.085],
+configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss()], "lr":[0.00013],
+           "optimizer":["adam", "adagrad"],"batch_size":[16], "drop_out":[0.085],
            "lr_scheduler":["ConstantLR", "StepR"]}
 
 if torch.cuda.is_available():
@@ -325,12 +325,12 @@ def parse_args():
 def main(TRAIN_MODE):
     counter = 0
     for i in data_folder_list:
-        i="final_denoised_ppg"
+        i="train_final"
         data_train_path = os.path.join(DATASETS_PATH, i, "Data_Train_Annotation.csv")
         data_valid_path = os.path.join(DATASETS_PATH, i, "Data_valid_Annotation.csv")
         bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
         os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
-        start, end = 39, 200
+        start, end = 5, 200
         for drop in configs["drop_out"]:
             for model_type in configs["models"]:
                 model = model_type
@@ -416,7 +416,7 @@ def main(TRAIN_MODE):
                                                                         "valid_loss": ValidLoss},
                                                        global_step=epoch)
                                 writer.close()
-PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\dualnet\final_denoised_ppg\drop_0.085\TransformerBlock\loss_MSELoss\lr_0.00012\batch_32\ConstantLR\epoch38.pth"
+PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\dualnet\train_final\drop_0.085\TransformerBlock\loss_MSELoss\lr_0.00013\batch_16\ConstantLR\epoch45.pth"
 PRETRAIN_MODEL2 = r"TODO"
 TRAIN_MODE = "s"
 if __name__ == "__main__":

@@ -291,13 +291,13 @@ if __name__ == '__main__':
     clean_ppg_list = os.listdir(clean_ppg_dir)
 
     ppg_txt_dir = r'D:\PPG2ABP\DenoisingNetwork\DATA\initial_ppg_abp\512samples\ppg_p1\txt'
-    noisy_ppg_save_dir = r'D:\PPG2ABP\data_for_training_split_shuffle\ppg_noisy'
+    noisy_ppg_save_dir = r'D:\PPG2ABP\data_for_training_split_shuffle\DNET\ppg_noisy_raw'
 
     distort = make_noisy(clean_ppg_directory=clean_ppg_dir,
                          clean_ppg_txt_directory=ppg_txt_dir,
                          noisy_ppg_save_directory=noisy_ppg_save_dir,
                          num_loss_sample=150)
-    # distort.scale(level=2, plot=False)
+    # distort.scale(level=3, plot=False)
     # distort.shift_distortion(plot=False, txt= True)
-    distort.peak_distorted(ndp=3)
-    # distort.sectoral_loss(plot=False, txt=True)
+    # distort.peak_distorted(ndp=4)
+    distort.sectoral_loss(plot=False, txt=True)

@@ -51,7 +51,7 @@ bp_data_inference = BPDataset(inference_data_annotation_path, device)
 data_loader_inference = DataLoader(bp_data_inference, 2, shuffle=False)
 
 
-stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\dualnet\final_denoised_ppg\drop_0.085\TransformerBlock\loss_MSELoss\lr_0.00012\batch_32\ConstantLR\epoch174.pth")
+stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\dualnet\train_final\drop_0.085\TransformerBlock\loss_MSELoss\lr_0.00013\batch_16\ConstantLR\epoch13.pth")
 
 # model = Transformer(input_shape)
 unet_model = UNet2DInput()
