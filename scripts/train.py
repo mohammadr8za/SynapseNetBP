@@ -33,8 +33,8 @@ input_shape = fs * win_time
 torch.manual_seed(1234)
 torch.cuda.manual_seed(1234)
 #برای شروع 36 حالت رو بررسی کنیم و بعدا با توجه به نتایح مجدد آمورس میدبم
-configs = {"models":[  TransformerBlock()], "loss_func":[MSELoss()], "lr":[0.0001],
-           "optimizer":["adam", "adagrad"],"batch_size":[1], "drop_out":[0.075],
+configs = {"models":[  UNetPPGtoABP()], "loss_func":[MSELoss()], "lr":[0.0001],
+           "optimizer":["adam", "adagrad"],"batch_size":[16], "drop_out":[0.075],
            "lr_scheduler":["ConstantLR", "StepR"]}
 
 if torch.cuda.is_available():
@@ -275,12 +275,12 @@ def main(TRAIN_MODE):
         data_valid_path = os.path.join(DATASETS_PATH, i, "Data_valid_Annotation.csv")
         bp_data_train, bp_data_valid = load_data(data_train_path, data_valid_path)
         os.makedirs(os.path.join("chekpoint", i), exist_ok=True)
-        start, end = 0, 200
+        start, end = 57, 200
         for drop in configs["drop_out"]:
             for model_type in configs["models"]:
                 model = model_type
-                # stat_dict = torch.load(PRETRAIN_MODEL)
-                # model.load_state_dict(stat_dict["net"])
+                stat_dict = torch.load(PRETRAIN_MODEL)
+                model.load_state_dict(stat_dict["net"])
                 model.to(device)
 
                 # model.half()
@@ -340,7 +340,7 @@ def main(TRAIN_MODE):
                                                                         "valid_loss": ValidLoss},
                                                        global_step=epoch)
                                 writer.close()
-PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\final_denoised_ppg\drop_0.075\UNetPPGtoABP3\loss_MSELoss\lr_0.0001\batch_32\ConstantLR\epoch60.pth"
+PRETRAIN_MODEL = r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\train_final\drop_0.075\TransformerBlock\loss_MSELoss\lr_0.0001\batch_16\ConstantLR\epoch54.pth"
 TRAIN_MODE = "s"
 if __name__ == "__main__":
     main(TRAIN_MODE)

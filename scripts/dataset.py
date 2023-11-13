@@ -35,6 +35,7 @@ class BPDataset(Dataset):
         label = torch.tensor( txt_load.TxtLoad(label_path))
         signal = signal.to(self.device)
         label = label.to(self.device)
+
         # print(signal.shape)
         # print(label.shape)
         return signal.float(), label.float()/20

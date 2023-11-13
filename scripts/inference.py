@@ -48,7 +48,7 @@ else:
 bp_data_inference = BPDataset(inference_data_annotation_path, device)
 # bp_data_inference._load_data_to_RAM()
 data_loader_inference = DataLoader(bp_data_inference, Batch_size, shuffle=False)
-stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\PPG2ABP\scripts\checkpoint\s\train_final\drop_0.075\UNetPPGtoABP\loss_MSELoss\lr_0.0001\batch_32\ConstantLR\epoch11.pth")
+stat_dict = torch.load(r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\supervised\final_optimized_net\unet\drop_0.08\UNetPPGtoABP\loss_MSELoss\lr_1e-05\batch_128\StepR\epoch14.pth")
 # model = Transformer(input_shape)
 model = UNetPPGtoABP()
 model.load_state_dict(stat_dict['net'])
@@ -91,7 +91,7 @@ def inference():
         info["reconstructed signal"] = np.array(outputs[0].detach().cpu())
         info = pd.DataFrame(info)
         pd.DataFrame.to_csv(info,
-                            r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\plots\unet_denoising.csv")
+                            r"G:\PPG2ABP_TRAIN\train_results\Denoise_net_final_train\plots\trans_denoising.csv")
 
         y_true += targets.cpu().numpy().tolist()
         y_pred += outputs.cpu().detach().numpy().tolist()

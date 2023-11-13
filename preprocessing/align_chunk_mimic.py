@@ -43,15 +43,15 @@ for sig in range(len(part)):
         chunk_name = str(part_number) + '-' + str(sig) + '-' + str(
             num)  # [Part-Sig-Chunk]  -> 1-200-18 means chunk 18 from 200-th signal in Part 1 <-
         ppg_chunk = ppg_sig[num * chunk_in_sample: (num + 1) * chunk_in_sample]
-        # plt.figure()
-        # plt.plot(np.arange(0, ppg_chunk.shape[0]), ppg_chunk)
-        # plt.savefig(os.path.join(ppg_save_dir, 'fig', chunk_name) + '.png')
-        # plt.close()
+        plt.figure()
+        plt.plot(np.arange(0, ppg_chunk.shape[0]), ppg_chunk)
+        plt.savefig(os.path.join(ppg_save_dir, 'fig', chunk_name) + '.png')
+        plt.close()
         np.savetxt(os.path.join(ppg_save_dir, 'txt', chunk_name) + '.txt', ppg_chunk, fmt='%f')
 
         abp_chunk = abp_sig[num * chunk_in_sample: (num + 1) * chunk_in_sample]
-        # plt.figure()
-        # plt.plot(np.arange(0, abp_chunk.shape[0]), abp_chunk)
-        # plt.savefig(os.path.join(abp_save_dir, 'fig', chunk_name) + '.png')
-        # plt.close()
-        np.savetxt(os.path.join(abp_save_dir, 'txt', chunk_name) + '.txt', abp_chunk, fmt='%f')
+        plt.figure()
+        plt.plot(np.arange(0, abp_chunk.shape[0]), abp_chunk)
+        plt.savefig(os.path.join(abp_save_dir, 'fig', chunk_name) + '.png')
+        plt.close()
+        # np.savetxt(os.path.join(abp_save_dir, 'txt', chunk_name) + '.txt', abp_chunk, fmt='%f')
